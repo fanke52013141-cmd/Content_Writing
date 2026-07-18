@@ -4,6 +4,8 @@ import { resolve } from 'node:path';
 const root = resolve(import.meta.dirname, '..');
 const compose = await readFile(resolve(root, 'compose.yaml'), 'utf8');
 const baseline = await readFile(resolve(root, 'docs/product/v1.1-baseline.md'), 'utf8');
+const apiPackage = JSON.parse(await readFile(resolve(root, 'apps/api/package.json'), 'utf8'));
+const workerPackage = JSON.parse(await readFile(resolve(root, 'apps/worker/package.json'), 'utf8'));
 
 const requiredServices = ['postgres', 'redis', 'migrate', 'api', 'worker', 'web'];
 for (const service of requiredServices) {
@@ -28,6 +30,9 @@ if (/image:\s+\S+:latest(?:\s|$)/u.test(compose)) {
 }
 if (!baseline.includes('WeChat hot topics or WeChat Index')) {
   throw new Error('The V1.1 scope exclusion is missing.');
+}
+if (apiPackage.type !== 'module' || workerPackage.type !== 'module') {
+  throw new Error('Node services must execute their ESM production builds as modules.');
 }
 
 const wrappers = ['启动平台.cmd', '停止平台.cmd', '备份数据.cmd'];

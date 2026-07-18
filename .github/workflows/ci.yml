@@ -130,6 +130,11 @@ jobs:
           status="$(docker compose --env-file .env.local ps --format json | head -c 4000 | tr '\n' ' ')"
           status="${status//'%'/'%25'}"
           echo "::error title=Docker cold-start failed::$status"
+          for service in migrate api worker web postgres redis; do
+            service_log="$(docker compose --env-file .env.local logs --no-color --tail=80 "$service" 2>&1 | tail -c 3500 | tr '\n' ' ')"
+            service_log="${service_log//'%'/'%25'}"
+            echo "::error title=$service logs::$service_log"
+          done
 
       - name: Remove ephemeral CI data
         if: always()
