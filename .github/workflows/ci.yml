@@ -146,7 +146,7 @@ jobs:
             --header 'content-type: application/json' \
             --data '{"title":"CI material","kind":"plain_text","content":"Docker cold-start material acceptance"}' \
             http://127.0.0.1:3100/api/v1/materials/text)"; then
-            echo "::error title=Material create failed::$material_response"
+            echo "::error title=Material create failed::Material create failed response: $material_response"
             exit 1
           fi
           echo "$material_response" | jq -e '.kind == "plain_text" and (.id | length > 0)'
@@ -155,7 +155,7 @@ jobs:
           if ! material_project_response="$(curl --fail-with-body --silent --show-error \
             --request PUT \
             "http://127.0.0.1:3100/api/v1/materials/$material_id/projects/$project_id")"; then
-            echo "::error title=Material project link failed::$material_project_response"
+            echo "::error title=Material project link failed::Material project link failed response: $material_project_response"
             exit 1
           fi
           echo "$material_project_response" | jq -e --arg project_id "$project_id" \
@@ -164,7 +164,7 @@ jobs:
           if ! material_topic_response="$(curl --fail-with-body --silent --show-error \
             --request PUT \
             "http://127.0.0.1:3100/api/v1/materials/$material_id/topics/$topic_id")"; then
-            echo "::error title=Material topic link failed::$material_topic_response"
+            echo "::error title=Material topic link failed::Material topic link failed response: $material_topic_response"
             exit 1
           fi
           echo "$material_topic_response" | jq -e --arg topic_id "$topic_id" \
@@ -175,7 +175,7 @@ jobs:
             --header 'content-type: application/json' \
             --data '{"status":"archived"}' \
             "http://127.0.0.1:3100/api/v1/materials/$material_id")"; then
-            echo "::error title=Material archive failed::$material_archive_response"
+            echo "::error title=Material archive failed::Material archive failed response: $material_archive_response"
             exit 1
           fi
           echo "$material_archive_response" | jq -e '.status == "archived" and (.archivedAt != null)'
