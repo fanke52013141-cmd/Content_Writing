@@ -7,6 +7,7 @@ import { InMemoryGenerationRepository } from '../generations/generation.reposito
 import { InMemoryLocalUserRepository } from '../identity/local-user.repository.js';
 import { InMemoryAccountRepository } from './account.repository.js';
 import { InMemoryProjectRepository } from '../projects/project.repository.js';
+import { InMemoryTopicRepository } from '../topics/topic.repository.js';
 
 const completeProfile = {
   positioningStatement: '帮助个人公众号创作者建立稳定的内容生产系统',
@@ -30,6 +31,7 @@ describe('account and profile API', () => {
       generationRepository: new InMemoryGenerationRepository(),
       accountRepository: new InMemoryAccountRepository(),
       projectRepository: new InMemoryProjectRepository(),
+      topicRepository: new InMemoryTopicRepository(),
     });
   });
 

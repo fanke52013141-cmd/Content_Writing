@@ -24,6 +24,7 @@ import { useState } from 'react';
 import { ApiStatus } from './api-status';
 import { AccountWorkspace } from './account-workspace';
 import { ProjectWorkspace } from './project-workspace';
+import { TopicWorkspace } from './topic-workspace';
 
 interface NavigationItem {
   label: string;
@@ -36,7 +37,7 @@ const navigation: readonly NavigationItem[] = [
   { label: '账号定位', icon: CircleUserRound, href: '/accounts' },
   { label: '创作项目', icon: FolderKanban, href: '/projects' },
   { label: '热点中心', icon: Flame, href: '#' },
-  { label: '选题库', icon: Lightbulb, href: '#' },
+  { label: '选题库', icon: Lightbulb, href: '/topics' },
   { label: '素材库', icon: FolderOpen, href: '#' },
   { label: '我的文章', icon: BookOpenText, href: '#' },
   { label: 'Prompt 管理', icon: WandSparkles, href: '#' },
@@ -49,7 +50,11 @@ const workflows = [
   { title: '从素材开始', description: '整理已有资料并形成创作框架', icon: Archive },
 ];
 
-export function AppShell({ surface = 'home' }: { surface?: 'home' | 'accounts' | 'projects' }) {
+export function AppShell({
+  surface = 'home',
+}: {
+  surface?: 'home' | 'accounts' | 'projects' | 'topics';
+}) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -80,7 +85,8 @@ export function AppShell({ surface = 'home' }: { surface?: 'home' | 'accounts' |
             const active =
               (surface === 'home' && label === '创作首页') ||
               (surface === 'accounts' && label === '账号定位') ||
-              (surface === 'projects' && label === '创作项目');
+              (surface === 'projects' && label === '创作项目') ||
+              (surface === 'topics' && label === '选题库');
             return (
               <a
                 aria-current={active ? 'page' : undefined}
@@ -114,7 +120,7 @@ export function AppShell({ surface = 'home' }: { surface?: 'home' | 'accounts' |
 
         <div
           className={
-            surface === 'accounts' || surface === 'projects'
+            surface === 'accounts' || surface === 'projects' || surface === 'topics'
               ? 'workspace__content workspace__content--wide'
               : 'workspace__content'
           }
@@ -123,6 +129,8 @@ export function AppShell({ surface = 'home' }: { surface?: 'home' | 'accounts' |
             <AccountWorkspace />
           ) : surface === 'projects' ? (
             <ProjectWorkspace />
+          ) : surface === 'topics' ? (
+            <TopicWorkspace />
           ) : (
             <>
               <section className="welcome" aria-labelledby="welcome-title">

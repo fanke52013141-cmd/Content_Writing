@@ -120,6 +120,25 @@ jobs:
             --request DELETE \
             "http://127.0.0.1:3100/api/v1/projects/$project_id/accounts/$account_id" \
             | jq -e '.accountLinks | length == 0'
+          topic_id="$(curl --fail --silent \
+            --request POST \
+            --header 'content-type: application/json' \
+            --data "{\"accountId\":\"$account_id\",\"title\":\"CI 可复用选题\",\"angle\":\"从 Docker 冷启动验收切入\",\"targetAudience\":\"个人创作者\",\"contentGoal\":\"验证选题资产\",\"keywords\":[\"CI\",\"选题\"]}" \
+            http://127.0.0.1:3100/api/v1/topics | jq -r '.id')"
+          curl --fail --silent \
+            --request PUT \
+            --header 'content-type: application/json' \
+            --data '{"isPrimary":true}' \
+            "http://127.0.0.1:3100/api/v1/topics/$topic_id/projects/$project_id" \
+            | jq -e --arg project_id "$project_id" \
+              '.projectLinks == [{"projectId":$project_id,"projectTitle":"CI 创作项目","isPrimary":true}]'
+          curl --fail --silent \
+            --request DELETE \
+            "http://127.0.0.1:3100/api/v1/topics/$topic_id/projects/$project_id" \
+            | jq -e '.projectLinks | length == 0'
+          curl --fail --silent \
+            "http://127.0.0.1:3100/api/v1/topics/$topic_id" \
+            | jq -e '.title == "CI 可复用选题" and .status == "active"'
           generation_id="$({
             curl --fail --silent \
               --request POST \

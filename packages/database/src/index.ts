@@ -6,3 +6,4 @@ export * from './local-user-store.js';
 export * from './outbox-store.js';
 export * from './project-store.js';
 export * from './schema.js';
+export * from './topic-store.js';

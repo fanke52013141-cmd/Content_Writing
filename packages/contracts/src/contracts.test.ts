@@ -5,6 +5,7 @@ import {
   createAccountProfileDraftSchema,
   createAccountSchema,
   createContentProjectSchema,
+  createTopicSchema,
   apiErrorSchema,
   generationJobSchema,
   createGenerationSchema,
@@ -15,6 +16,7 @@ import {
   setLocalPinSchema,
   updateLocalUserSchema,
   updateContentProjectSchema,
+  updateTopicSchema,
 } from './index.js';
 
 describe('shared contracts', () => {
@@ -221,5 +223,20 @@ describe('shared contracts', () => {
       status: 'completed',
     });
     expect(updateContentProjectSchema.safeParse({ currentStep: 3 }).success).toBe(false);
+  });
+
+  it('creates an independent manual topic without requiring a project', () => {
+    expect(createTopicSchema.parse({ title: '  AI 本地工具为什么值得做  ' })).toEqual({
+      title: 'AI 本地工具为什么值得做',
+      angle: '',
+      targetAudience: '',
+      contentGoal: '',
+      keywords: [],
+    });
+  });
+
+  it('keeps topic lifecycle and AI provenance outside client-controlled creation fields', () => {
+    expect(createTopicSchema.safeParse({ title: '选题', source: 'ai' }).success).toBe(false);
+    expect(updateTopicSchema.parse({ status: 'archived' })).toEqual({ status: 'archived' });
   });
 });

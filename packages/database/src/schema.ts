@@ -65,6 +65,14 @@ export const projectCreationOrigin = pgEnum('project_creation_origin', [
   'existing_article',
   'blank',
 ]);
+export const topicSource = pgEnum('topic_source', ['manual', 'ai', 'hot_topic']);
+export const contentRelationType = pgEnum('content_relation_type', [
+  'project_has_topic',
+  'project_has_material',
+  'topic_has_material',
+  'project_has_outline',
+  'project_has_article',
+]);
 
 export const localUsers = pgTable(
   'local_users',
@@ -365,6 +373,85 @@ export const projectAccounts = pgTable(
   ],
 );
 
+export const topics = pgTable(
+  'topics',
+  {
+    id: uuid('id').primaryKey(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    accountId: uuid('account_id'),
+    title: text('title').notNull(),
+    angle: text('angle').default('').notNull(),
+    targetAudience: text('target_audience').default('').notNull(),
+    contentGoal: text('content_goal').default('').notNull(),
+    keywords: text('keywords')
+      .array()
+      .default(sql`'{}'::text[]`)
+      .notNull(),
+    source: topicSource('source').default('manual').notNull(),
+    sourceGenerationId: uuid('source_generation_id').references(() => aiGenerations.id, {
+      onDelete: 'restrict',
+    }),
+  },
+  (table) => [
+    uniqueIndex('topics_id_owner_uq').on(table.id, table.ownerUserId),
+    foreignKey({
+      columns: [table.id, table.ownerUserId],
+      foreignColumns: [contentObjects.id, contentObjects.ownerUserId],
+      name: 'topics_object_fk',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.accountId, table.ownerUserId],
+      foreignColumns: [accounts.id, accounts.ownerUserId],
+      name: 'topics_account_fk',
+    }).onDelete('restrict'),
+    index('topics_account_idx').on(table.accountId),
+    check('topics_title_nonempty_ck', sql`length(btrim(${table.title})) > 0`),
+  ],
+);
+
+export const contentRelations = pgTable(
+  'content_relations',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    ownerUserId: uuid('owner_user_id')
+      .notNull()
+      .references(() => localUsers.id, { onDelete: 'restrict' }),
+    fromObjectId: uuid('from_object_id').notNull(),
+    toObjectId: uuid('to_object_id').notNull(),
+    relationType: contentRelationType('relation_type').notNull(),
+    projectScopeId: uuid('project_scope_id'),
+    isPrimary: boolean('is_primary').default(false).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    endedAt: timestamp('ended_at', { withTimezone: true }),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.fromObjectId, table.ownerUserId],
+      foreignColumns: [contentObjects.id, contentObjects.ownerUserId],
+      name: 'content_relations_from_fk',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.toObjectId, table.ownerUserId],
+      foreignColumns: [contentObjects.id, contentObjects.ownerUserId],
+      name: 'content_relations_to_fk',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.projectScopeId, table.ownerUserId],
+      foreignColumns: [contentProjects.id, contentProjects.ownerUserId],
+      name: 'content_relations_project_fk',
+    }).onDelete('restrict'),
+    uniqueIndex('content_relations_active_uq')
+      .on(table.fromObjectId, table.toObjectId, table.relationType)
+      .where(sql`${table.endedAt} IS NULL`),
+    uniqueIndex('content_relations_single_primary_uq')
+      .on(table.fromObjectId, table.relationType)
+      .where(sql`${table.endedAt} IS NULL AND ${table.isPrimary} = true`),
+    index('content_relations_to_active_idx')
+      .on(table.toObjectId, table.relationType)
+      .where(sql`${table.endedAt} IS NULL`),
+  ],
+);
+
 export type LocalUserRecord = typeof localUsers.$inferSelect;
 export type NewOutboxEvent = typeof outboxEvents.$inferInsert;
 export type PromptVersionRecord = typeof promptVersions.$inferSelect;
@@ -374,3 +461,5 @@ export type AccountProfileVersionRecord = typeof accountProfileVersions.$inferSe
 export type ContentObjectRecord = typeof contentObjects.$inferSelect;
 export type ContentProjectRecord = typeof contentProjects.$inferSelect;
 export type ProjectAccountRecord = typeof projectAccounts.$inferSelect;
+export type TopicRecord = typeof topics.$inferSelect;
+export type ContentRelationRecord = typeof contentRelations.$inferSelect;

@@ -7,6 +7,7 @@ import { InMemoryAccountRepository } from '../accounts/account.repository.js';
 import { InMemoryGenerationRepository } from '../generations/generation.repository.js';
 import { InMemoryLocalUserRepository } from '../identity/local-user.repository.js';
 import { InMemoryProjectRepository } from './project.repository.js';
+import { InMemoryTopicRepository } from '../topics/topic.repository.js';
 
 const accountOne = '019f754a-c6d8-7fa2-a3c8-111111111111';
 const accountTwo = '019f754a-c6d8-7fa2-a3c8-222222222222';
@@ -26,6 +27,7 @@ describe('content project API', () => {
           [accountTwo, '账号二'],
         ]),
       ),
+      topicRepository: new InMemoryTopicRepository(),
     });
   });
 

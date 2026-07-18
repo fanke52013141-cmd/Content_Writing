@@ -45,6 +45,7 @@ describe('migration file loader', () => {
       '0002_seed_prompts.sql',
       '0003_account_profiles.sql',
       '0004_content_projects.sql',
+      '0005_topics_relations.sql',
     ]);
   });
 });

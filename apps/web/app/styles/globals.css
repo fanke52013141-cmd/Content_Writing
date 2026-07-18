@@ -706,6 +706,183 @@ a:focus-visible {
   margin-top: 10px;
 }
 
+.topic-workspace {
+  display: grid;
+  gap: 28px;
+}
+
+.topic-create {
+  background: var(--neutral-0);
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius-container);
+  padding: 20px;
+}
+
+.topic-create .section-heading > div h2,
+.topic-create .section-heading > div span {
+  display: block;
+}
+
+.topic-create__form {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.topic-create__form label,
+.topic-editor-grid label {
+  color: var(--neutral-600);
+  display: grid;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 6px;
+}
+
+.topic-create__title {
+  grid-column: span 2;
+}
+
+.topic-create__form input,
+.topic-create__form select,
+.topic-create__form textarea,
+.topic-card__heading input,
+.topic-editor-grid input,
+.topic-editor-grid textarea {
+  background: var(--neutral-0);
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius-control);
+  color: var(--neutral-900);
+  font: inherit;
+  outline: none;
+}
+
+.topic-create__form input,
+.topic-create__form select,
+.topic-card__heading input,
+.topic-editor-grid input {
+  height: 40px;
+  padding: 0 11px;
+}
+
+.topic-create__form textarea,
+.topic-editor-grid textarea {
+  min-height: 72px;
+  padding: 9px 11px;
+  resize: vertical;
+}
+
+.topic-create__form input:focus,
+.topic-create__form select:focus,
+.topic-create__form textarea:focus,
+.topic-card__heading input:focus,
+.topic-editor-grid input:focus,
+.topic-editor-grid textarea:focus {
+  border-color: var(--primary-500);
+  box-shadow: var(--focus-ring);
+}
+
+.topic-create__form .primary-button {
+  align-self: end;
+  justify-self: end;
+  min-width: 124px;
+}
+
+.topic-list {
+  display: grid;
+  gap: 12px;
+}
+
+.topic-card {
+  background: var(--neutral-0);
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius-container);
+  padding: 18px;
+}
+
+.topic-card__heading {
+  align-items: flex-start;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+}
+
+.topic-card__heading > div:first-child {
+  min-width: 0;
+  width: 100%;
+}
+
+.topic-card h3 {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  margin: 8px 0 3px;
+}
+
+.topic-card__heading p {
+  color: var(--neutral-500);
+  margin: 0;
+}
+
+.topic-status {
+  border-radius: 999px;
+  display: inline-block;
+  font-size: 11px;
+  line-height: 20px;
+  padding: 0 8px;
+}
+
+.topic-status--active {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.topic-status--archived {
+  background: var(--neutral-100);
+  color: var(--neutral-500);
+}
+
+.topic-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.topic-details {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.topic-details span {
+  color: var(--neutral-700);
+  font-size: 12px;
+}
+
+.topic-details strong {
+  color: var(--neutral-400);
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.topic-editor-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 16px;
+}
+
+.topic-card footer {
+  color: var(--neutral-400);
+  display: flex;
+  font-size: 11px;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
 .welcome {
   margin-bottom: 48px;
   max-width: 680px;
@@ -932,6 +1109,10 @@ a:focus-visible {
     grid-template-columns: 1fr 1fr;
   }
 
+  .topic-create__form {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .project-create__form label:nth-of-type(4) {
     grid-column: auto;
   }
@@ -990,9 +1171,25 @@ a:focus-visible {
   }
 
   .project-card__heading,
-  .project-card footer {
+  .project-card footer,
+  .topic-card__heading,
+  .topic-card footer {
     display: grid;
     gap: 10px;
+  }
+
+  .topic-create__form,
+  .topic-details,
+  .topic-editor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .topic-create__title {
+    grid-column: auto;
+  }
+
+  .topic-create__form .primary-button {
+    justify-self: stretch;
   }
 
   .context-linker {
