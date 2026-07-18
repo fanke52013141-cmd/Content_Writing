@@ -41,6 +41,11 @@ import {
   PostgresTopicRepository,
   type TopicRepository,
 } from './modules/topics/topic.repository.js';
+import {
+  InMemoryOutlineRepository,
+  PostgresOutlineRepository,
+  type OutlineRepository,
+} from './modules/outlines/outline.repository.js';
 
 export interface CreateAppOptions {
   localUserRepository?: LocalUserRepository;
@@ -49,6 +54,7 @@ export interface CreateAppOptions {
   projectRepository?: ProjectRepository;
   topicRepository?: TopicRepository;
   materialRepository?: MaterialRepository;
+  outlineRepository?: OutlineRepository;
   storageProvider?: StorageProvider;
   documentExtractor?: DocumentExtractor;
   webpageExtractor?: WebpageExtractor;
@@ -61,6 +67,7 @@ function createRuntimeRepositories(): {
   projectRepository: ProjectRepository;
   topicRepository: TopicRepository;
   materialRepository: MaterialRepository;
+  outlineRepository: OutlineRepository;
 } {
   const { databaseUrl } = loadEnvironment();
   if (!databaseUrl) {
@@ -73,6 +80,7 @@ function createRuntimeRepositories(): {
     projectRepository: new PostgresProjectRepository(databaseUrl),
     topicRepository: new PostgresTopicRepository(databaseUrl),
     materialRepository: new PostgresMaterialRepository(databaseUrl),
+    outlineRepository: new PostgresOutlineRepository(databaseUrl),
   };
 }
 
@@ -94,6 +102,10 @@ export async function createApp(options: CreateAppOptions = {}): Promise<NestFas
   const projectRepository = options.projectRepository ?? runtimeRepositories?.projectRepository;
   const topicRepository = options.topicRepository ?? runtimeRepositories?.topicRepository;
   const materialRepository = options.materialRepository ?? runtimeRepositories?.materialRepository;
+  const outlineRepository =
+    options.outlineRepository ??
+    runtimeRepositories?.outlineRepository ??
+    new InMemoryOutlineRepository();
   const environment = loadEnvironment();
   const storageProvider =
     options.storageProvider ?? new LocalFileStorageProvider(environment.storageRoot);
@@ -119,6 +131,7 @@ export async function createApp(options: CreateAppOptions = {}): Promise<NestFas
       projectRepository,
       topicRepository,
       materialRepository,
+      outlineRepository,
       storageProvider,
       documentExtractor,
       webpageExtractor,

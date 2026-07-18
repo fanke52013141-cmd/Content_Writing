@@ -20,6 +20,8 @@ import {
   createTextMaterialSchema,
   createUrlMaterialSchema,
   updateMaterialSchema,
+  outlineSchema,
+  updateOutlineSchema,
 } from './index.js';
 
 describe('shared contracts', () => {
@@ -275,5 +277,26 @@ describe('shared contracts', () => {
     expect(updateMaterialSchema.parse({ termsReviewStatus: 'approved' })).toEqual({
       termsReviewStatus: 'approved',
     });
+  });
+
+  it('validates structured outline sections and lifecycle updates', () => {
+    const outline = outlineSchema.parse({
+      id: crypto.randomUUID(),
+      projectId: null,
+      topicId: null,
+      title: '框架',
+      summary: '',
+      sections: [
+        { heading: '开场', purpose: '提出问题', keyPoints: ['事实'], evidenceMaterialIds: [] },
+      ],
+      source: 'manual',
+      sourceGenerationId: null,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      archivedAt: null,
+    });
+    expect(outline.sections).toHaveLength(1);
+    expect(updateOutlineSchema.parse({ status: 'archived' })).toEqual({ status: 'archived' });
   });
 });

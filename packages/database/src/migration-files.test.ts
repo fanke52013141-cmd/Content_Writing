@@ -47,6 +47,7 @@ describe('migration file loader', () => {
       '0004_content_projects.sql',
       '0005_topics_relations.sql',
       '0006_materials_files.sql',
+      '0007_outlines.sql',
     ]);
   });
 });

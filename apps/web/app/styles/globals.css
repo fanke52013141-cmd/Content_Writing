@@ -2,6 +2,88 @@
   box-sizing: border-box;
 }
 
+.outline-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.3fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.outline-list,
+.outline-editor {
+  background: var(--surface, #fff);
+  border: 1px solid var(--line, #e7e2d9);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.outline-list {
+  display: grid;
+  gap: 10px;
+}
+
+.outline-item {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 6px;
+  padding: 12px;
+  color: inherit;
+  cursor: pointer;
+}
+
+.outline-item:hover,
+.outline-item--active {
+  border-color: var(--accent, #5c6f64);
+  background: #f4f6f2;
+}
+
+.outline-item small,
+.outline-editor label small {
+  color: var(--muted, #78756e);
+}
+
+.outline-editor {
+  display: grid;
+  gap: 16px;
+}
+
+.outline-editor label {
+  display: grid;
+  gap: 7px;
+  font-weight: 650;
+}
+
+.outline-editor input,
+.outline-editor textarea {
+  width: 100%;
+  border: 1px solid var(--line, #d8d4cc);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font: inherit;
+  color: inherit;
+  background: #fff;
+}
+
+.outline-editor textarea {
+  resize: vertical;
+  line-height: 1.65;
+}
+
+.outline-editor__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 760px) {
+  .outline-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 html,
 body {
   min-height: 100%;

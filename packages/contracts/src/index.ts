@@ -4,5 +4,6 @@ export * from './generation.js';
 export * from './hot-topics.js';
 export * from './identity.js';
 export * from './material.js';
+export * from './outline.js';
 export * from './project.js';
 export * from './topic.js';

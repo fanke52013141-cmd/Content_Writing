@@ -87,6 +87,7 @@ export const termsReviewStatus = pgEnum('terms_review_status', [
   'restricted',
 ]);
 export const contentFileRole = pgEnum('content_file_role', ['original', 'raw_snapshot', 'image']);
+export const outlineSource = pgEnum('outline_source', ['manual', 'ai']);
 
 export const localUsers = pgTable(
   'local_users',
@@ -456,6 +457,52 @@ export const materials = pgTable(
   ],
 );
 
+export const outlines = pgTable(
+  'outlines',
+  {
+    id: uuid('id').primaryKey(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    projectId: uuid('project_id'),
+    topicId: uuid('topic_id'),
+    title: text('title').notNull(),
+    summary: text('summary').default('').notNull(),
+    sections: jsonb('sections')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    source: outlineSource('source').default('manual').notNull(),
+    sourceGenerationId: uuid('source_generation_id').references(() => aiGenerations.id, {
+      onDelete: 'restrict',
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('outlines_id_owner_uq').on(table.id, table.ownerUserId),
+    foreignKey({
+      columns: [table.id, table.ownerUserId],
+      foreignColumns: [contentObjects.id, contentObjects.ownerUserId],
+      name: 'outlines_object_fk',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.projectId, table.ownerUserId],
+      foreignColumns: [contentProjects.id, contentProjects.ownerUserId],
+      name: 'outlines_project_fk',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.topicId, table.ownerUserId],
+      foreignColumns: [topics.id, topics.ownerUserId],
+      name: 'outlines_topic_fk',
+    }).onDelete('restrict'),
+    index('outlines_owner_updated_idx').on(table.ownerUserId, table.updatedAt),
+    check('outlines_title_nonempty_ck', sql`length(btrim(${table.title})) > 0`),
+    check('outlines_sections_array_ck', sql`jsonb_typeof(${table.sections}) = 'array'`),
+    check(
+      'outlines_source_generation_ck',
+      sql`(${table.source} = 'ai' AND ${table.sourceGenerationId} IS NOT NULL) OR (${table.source} = 'manual' AND ${table.sourceGenerationId} IS NULL)`,
+    ),
+  ],
+);
+
 export const contentFiles = pgTable(
   'content_files',
   {
@@ -544,5 +591,6 @@ export type ContentProjectRecord = typeof contentProjects.$inferSelect;
 export type ProjectAccountRecord = typeof projectAccounts.$inferSelect;
 export type TopicRecord = typeof topics.$inferSelect;
 export type MaterialRecord = typeof materials.$inferSelect;
+export type OutlineRecord = typeof outlines.$inferSelect;
 export type ContentFileRecord = typeof contentFiles.$inferSelect;
 export type ContentRelationRecord = typeof contentRelations.$inferSelect;

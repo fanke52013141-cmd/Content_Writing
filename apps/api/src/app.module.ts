@@ -14,6 +14,8 @@ import type {
 } from './modules/materials/material-extractor.js';
 import type { MaterialRepository } from './modules/materials/material.repository.js';
 import type { StorageProvider } from './modules/materials/storage.provider.js';
+import { OutlineModule } from './modules/outlines/outline.module.js';
+import type { OutlineRepository } from './modules/outlines/outline.repository.js';
 import { ProjectModule } from './modules/projects/project.module.js';
 import type { ProjectRepository } from './modules/projects/project.repository.js';
 import { TopicModule } from './modules/topics/topic.module.js';
@@ -28,6 +30,7 @@ export class AppModule {
     projectRepository: ProjectRepository,
     topicRepository: TopicRepository,
     materialRepository: MaterialRepository,
+    outlineRepository: OutlineRepository,
     storageProvider: StorageProvider,
     documentExtractor: DocumentExtractor,
     webpageExtractor: WebpageExtractor,
@@ -47,6 +50,7 @@ export class AppModule {
         ),
         ProjectModule.register(projectRepository, identityModule),
         TopicModule.register(topicRepository, identityModule),
+        OutlineModule.register(outlineRepository, identityModule),
       ],
       controllers: [HealthController],
     };

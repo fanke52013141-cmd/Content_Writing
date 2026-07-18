@@ -7,6 +7,7 @@ import {
   ChevronRight,
   CircleUserRound,
   FileClock,
+  FileText,
   Flame,
   FolderOpen,
   FolderKanban,
@@ -25,6 +26,7 @@ import { ApiStatus } from './api-status';
 import { AccountWorkspace } from './account-workspace';
 import { ProjectWorkspace } from './project-workspace';
 import { MaterialWorkspace } from './material-workspace';
+import { OutlineWorkspace } from './outline-workspace';
 import { TopicWorkspace } from './topic-workspace';
 
 interface NavigationItem {
@@ -40,6 +42,7 @@ const navigation: readonly NavigationItem[] = [
   { label: '热点中心', icon: Flame, href: '#' },
   { label: '选题库', icon: Lightbulb, href: '/topics' },
   { label: '素材库', icon: FolderOpen, href: '/materials' },
+  { label: '文章框架', icon: FileText, href: '/outlines' },
   { label: '我的文章', icon: BookOpenText, href: '#' },
   { label: 'Prompt 管理', icon: WandSparkles, href: '#' },
   { label: '导出历史', icon: FileClock, href: '#' },
@@ -54,7 +57,7 @@ const workflows = [
 export function AppShell({
   surface = 'home',
 }: {
-  surface?: 'home' | 'accounts' | 'projects' | 'topics' | 'materials';
+  surface?: 'home' | 'accounts' | 'projects' | 'topics' | 'materials' | 'outlines';
 }) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -88,7 +91,8 @@ export function AppShell({
               (surface === 'accounts' && label === '账号定位') ||
               (surface === 'projects' && label === '创作项目') ||
               (surface === 'topics' && label === '选题库') ||
-              (surface === 'materials' && label === '素材库');
+              (surface === 'materials' && label === '素材库') ||
+              (surface === 'outlines' && label === '文章框架');
             return (
               <a
                 aria-current={active ? 'page' : undefined}
@@ -125,7 +129,8 @@ export function AppShell({
             surface === 'accounts' ||
             surface === 'projects' ||
             surface === 'topics' ||
-            surface === 'materials'
+            surface === 'materials' ||
+            surface === 'outlines'
               ? 'workspace__content workspace__content--wide'
               : 'workspace__content'
           }
@@ -138,6 +143,8 @@ export function AppShell({
             <TopicWorkspace />
           ) : surface === 'materials' ? (
             <MaterialWorkspace />
+          ) : surface === 'outlines' ? (
+            <OutlineWorkspace />
           ) : (
             <>
               <section className="welcome" aria-labelledby="welcome-title">
