@@ -89,6 +89,7 @@ jobs:
       - name: Verify API, worker and mock generation trace
         shell: bash
         run: |
+          set -o pipefail
           curl --fail --silent http://127.0.0.1:3100/api/v1/health | jq -e '.status == "ok"'
           curl --fail --silent http://127.0.0.1:3000 | grep -q '今天想写点什么'
           account_id="$(curl --fail --silent \
@@ -139,11 +140,17 @@ jobs:
           curl --fail --silent \
             "http://127.0.0.1:3100/api/v1/topics/$topic_id" \
             | jq -e '.title == "CI 可复用选题" and .status == "active"'
-          material_id="$(curl --fail --silent \
+          material_response=''
+          if ! material_response="$(curl --fail-with-body --silent --show-error \
             --request POST \
             --header 'content-type: application/json' \
-            --data '{"title":"CI 文本素材","kind":"plain_text","content":"Docker 冷启动素材验收正文"}' \
-            http://127.0.0.1:3100/api/v1/materials/text | jq -r '.id')"
+            --data '{"title":"CI material","kind":"plain_text","content":"Docker cold-start material acceptance"}' \
+            http://127.0.0.1:3100/api/v1/materials/text)"; then
+            echo "::error title=Material create failed::$material_response"
+            exit 1
+          fi
+          echo "$material_response" | jq -e '.kind == "plain_text" and (.id | length > 0)'
+          material_id="$(jq -r '.id' <<< "$material_response")"
           curl --fail --silent \
             --request PUT \
             "http://127.0.0.1:3100/api/v1/materials/$material_id/projects/$project_id" \
