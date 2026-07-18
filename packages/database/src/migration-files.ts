@@ -13,7 +13,7 @@ export function migrationChecksum(sql: string): string {
 
 export async function loadMigrationFiles(directory: URL): Promise<readonly MigrationFile[]> {
   const names = (await readdir(directory))
-    .filter((name) => /^\d{4}_[a-z0-9-]+\.sql$/u.test(name))
+    .filter((name) => /^\d{4}_[a-z0-9_-]+\.sql$/u.test(name))
     .sort((left, right) => left.localeCompare(right));
 
   const migrations: MigrationFile[] = [];

@@ -18,6 +18,7 @@ describe('migration file loader', () => {
     await mkdir(testDirectory, { recursive: true });
     await writeFile(join(testDirectory, '0002_second.sql'), 'SELECT 2;', 'utf8');
     await writeFile(join(testDirectory, '0001_first.sql'), 'SELECT 1;', 'utf8');
+    await writeFile(join(testDirectory, '0003_multiple_words.sql'), 'SELECT 3;', 'utf8');
     await writeFile(join(testDirectory, 'README.md'), 'ignored', 'utf8');
     const directoryUrl = pathToFileURL(`${testDirectory}/`);
 
@@ -26,11 +27,22 @@ describe('migration file loader', () => {
     expect(migrations.map((migration) => migration.name)).toEqual([
       '0001_first.sql',
       '0002_second.sql',
+      '0003_multiple_words.sql',
     ]);
     expect(migrations[0]?.checksum).toBe(migrationChecksum('SELECT 1;'));
   });
 
   it('changes the checksum whenever migration content changes', () => {
     expect(migrationChecksum('SELECT 1;')).not.toBe(migrationChecksum('SELECT 2;'));
+  });
+
+  it('loads every checked-in migration', async () => {
+    const migrations = await loadMigrationFiles(new URL('../migrations/', import.meta.url));
+
+    expect(migrations.map((migration) => migration.name)).toEqual([
+      '0000_foundation.sql',
+      '0001_generation_trace.sql',
+      '0002_seed_prompts.sql',
+    ]);
   });
 });
