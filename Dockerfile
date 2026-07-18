@@ -30,7 +30,7 @@ FROM runtime-base AS web
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 EXPOSE 3000
-CMD ["node", "apps/web/.next/standalone/apps/web/server.js"]
+CMD ["pnpm", "--filter", "@content-writing/web", "start"]
 
 FROM runtime-base AS database-migrate
 CMD ["node", "packages/database/dist/migrate.js"]

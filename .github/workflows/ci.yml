@@ -65,7 +65,26 @@ jobs:
           EOF
 
       - name: Build and cold-start the local stack
-        run: docker compose --env-file .env.local up --detach --build --wait --wait-timeout 240
+        shell: bash
+        run: |
+          docker compose --env-file .env.local up --detach --build
+          ready=false
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3100/api/v1/health >/dev/null \
+              && curl --fail --silent http://127.0.0.1:3000 >/dev/null; then
+              ready=true
+              break
+            fi
+            if docker compose --env-file .env.local ps --status exited --services \
+              | grep -Ev '^migrate$' | grep -q .; then
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" != true ]; then
+            docker compose --env-file .env.local ps
+            exit 1
+          fi
 
       - name: Verify API, worker and mock generation trace
         shell: bash
@@ -99,9 +118,18 @@ jobs:
 
       - name: Print service diagnostics on failure
         if: failure()
+        shell: bash
         run: |
-          docker compose --env-file .env.local ps
-          docker compose --env-file .env.local logs --no-color --tail=300
+          {
+            echo '## Docker cold-start diagnostics'
+            echo '```text'
+            docker compose --env-file .env.local ps 2>&1
+            docker compose --env-file .env.local logs --no-color --tail=300 2>&1
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          status="$(docker compose --env-file .env.local ps --format json | head -c 4000 | tr '\n' ' ')"
+          status="${status//'%'/'%25'}"
+          echo "::error title=Docker cold-start failed::$status"
 
       - name: Remove ephemeral CI data
         if: always()
