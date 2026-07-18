@@ -18,17 +18,23 @@ import {
   PostgresLocalUserRepository,
   type LocalUserRepository,
 } from './modules/identity/local-user.repository.js';
+import {
+  PostgresProjectRepository,
+  type ProjectRepository,
+} from './modules/projects/project.repository.js';
 
 export interface CreateAppOptions {
   localUserRepository?: LocalUserRepository;
   generationRepository?: GenerationRepository;
   accountRepository?: AccountRepository;
+  projectRepository?: ProjectRepository;
 }
 
 function createRuntimeRepositories(): {
   localUserRepository: LocalUserRepository;
   generationRepository: GenerationRepository;
   accountRepository: AccountRepository;
+  projectRepository: ProjectRepository;
 } {
   const { databaseUrl } = loadEnvironment();
   if (!databaseUrl) {
@@ -38,12 +44,16 @@ function createRuntimeRepositories(): {
     localUserRepository: new PostgresLocalUserRepository(databaseUrl),
     generationRepository: new PostgresGenerationRepository(databaseUrl),
     accountRepository: new PostgresAccountRepository(databaseUrl),
+    projectRepository: new PostgresProjectRepository(databaseUrl),
   };
 }
 
 export async function createApp(options: CreateAppOptions = {}): Promise<NestFastifyApplication> {
   const runtimeRepositories =
-    options.localUserRepository && options.generationRepository && options.accountRepository
+    options.localUserRepository &&
+    options.generationRepository &&
+    options.accountRepository &&
+    options.projectRepository
       ? null
       : createRuntimeRepositories();
   const localUserRepository =
@@ -51,11 +61,17 @@ export async function createApp(options: CreateAppOptions = {}): Promise<NestFas
   const generationRepository =
     options.generationRepository ?? runtimeRepositories?.generationRepository;
   const accountRepository = options.accountRepository ?? runtimeRepositories?.accountRepository;
-  if (!localUserRepository || !generationRepository || !accountRepository) {
-    throw new Error('Local-user, generation and account repositories are required.');
+  const projectRepository = options.projectRepository ?? runtimeRepositories?.projectRepository;
+  if (!localUserRepository || !generationRepository || !accountRepository || !projectRepository) {
+    throw new Error('Local-user, generation, account and project repositories are required.');
   }
   const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule.register(localUserRepository, generationRepository, accountRepository),
+    AppModule.register(
+      localUserRepository,
+      generationRepository,
+      accountRepository,
+      projectRepository,
+    ),
     new FastifyAdapter({
       bodyLimit: 1_048_576,
       genReqId: () => crypto.randomUUID(),

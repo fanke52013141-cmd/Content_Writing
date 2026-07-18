@@ -105,6 +105,21 @@ jobs:
             --request POST \
             "http://127.0.0.1:3100/api/v1/accounts/$account_id/profile-versions/$profile_id/activate" \
             | jq -e '.status == "active"'
+          project_id="$(curl --fail --silent \
+            --request POST \
+            --header 'content-type: application/json' \
+            --data "{\"title\":\"CI 创作项目\",\"creationOrigin\":\"idea\",\"originNote\":\"Docker cold-start acceptance\",\"primaryAccountId\":\"$account_id\"}" \
+            http://127.0.0.1:3100/api/v1/projects | jq -r '.id')"
+          curl --fail --silent \
+            --request PATCH \
+            --header 'content-type: application/json' \
+            --data '{"status":"completed"}' \
+            "http://127.0.0.1:3100/api/v1/projects/$project_id" \
+            | jq -e '.status == "completed" and (.completedAt != null)'
+          curl --fail --silent \
+            --request DELETE \
+            "http://127.0.0.1:3100/api/v1/projects/$project_id/accounts/$account_id" \
+            | jq -e '.accountLinks | length == 0'
           generation_id="$({
             curl --fail --silent \
               --request POST \

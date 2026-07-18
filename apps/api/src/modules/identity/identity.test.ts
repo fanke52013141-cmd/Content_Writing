@@ -7,6 +7,7 @@ import { InMemoryAccountRepository } from '../accounts/account.repository.js';
 import { InMemoryGenerationRepository } from '../generations/generation.repository.js';
 import { InMemoryLocalUserRepository } from './local-user.repository.js';
 import { PinHasher } from './pin-hasher.js';
+import { InMemoryProjectRepository } from '../projects/project.repository.js';
 
 describe('local identity API', () => {
   let app: NestFastifyApplication;
@@ -18,6 +19,7 @@ describe('local identity API', () => {
       localUserRepository: repository,
       generationRepository: new InMemoryGenerationRepository(),
       accountRepository: new InMemoryAccountRepository(),
+      projectRepository: new InMemoryProjectRepository(),
     });
   });
 

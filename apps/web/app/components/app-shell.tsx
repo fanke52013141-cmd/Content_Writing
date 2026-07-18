@@ -9,6 +9,7 @@ import {
   FileClock,
   Flame,
   FolderOpen,
+  FolderKanban,
   LayoutDashboard,
   Lightbulb,
   Menu,
@@ -22,6 +23,7 @@ import { useState } from 'react';
 
 import { ApiStatus } from './api-status';
 import { AccountWorkspace } from './account-workspace';
+import { ProjectWorkspace } from './project-workspace';
 
 interface NavigationItem {
   label: string;
@@ -32,6 +34,7 @@ interface NavigationItem {
 const navigation: readonly NavigationItem[] = [
   { label: '创作首页', icon: LayoutDashboard, href: '/' },
   { label: '账号定位', icon: CircleUserRound, href: '/accounts' },
+  { label: '创作项目', icon: FolderKanban, href: '/projects' },
   { label: '热点中心', icon: Flame, href: '#' },
   { label: '选题库', icon: Lightbulb, href: '#' },
   { label: '素材库', icon: FolderOpen, href: '#' },
@@ -46,7 +49,7 @@ const workflows = [
   { title: '从素材开始', description: '整理已有资料并形成创作框架', icon: Archive },
 ];
 
-export function AppShell({ surface = 'home' }: { surface?: 'home' | 'accounts' }) {
+export function AppShell({ surface = 'home' }: { surface?: 'home' | 'accounts' | 'projects' }) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -74,7 +77,10 @@ export function AppShell({ surface = 'home' }: { surface?: 'home' | 'accounts' }
 
         <nav className="navigation">
           {navigation.map(({ label, icon: Icon, href }) => {
-            const active = surface === 'home' ? label === '创作首页' : label === '账号定位';
+            const active =
+              (surface === 'home' && label === '创作首页') ||
+              (surface === 'accounts' && label === '账号定位') ||
+              (surface === 'projects' && label === '创作项目');
             return (
               <a
                 aria-current={active ? 'page' : undefined}
@@ -108,13 +114,15 @@ export function AppShell({ surface = 'home' }: { surface?: 'home' | 'accounts' }
 
         <div
           className={
-            surface === 'accounts'
+            surface === 'accounts' || surface === 'projects'
               ? 'workspace__content workspace__content--wide'
               : 'workspace__content'
           }
         >
           {surface === 'accounts' ? (
             <AccountWorkspace />
+          ) : surface === 'projects' ? (
+            <ProjectWorkspace />
           ) : (
             <>
               <section className="welcome" aria-labelledby="welcome-title">

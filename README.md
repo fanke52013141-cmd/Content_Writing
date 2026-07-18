@@ -14,9 +14,10 @@ Phase 0 工程基础已经通过真实 Docker 冷启动验收，当前进入 Pha
 - 独立 BullMQ Worker、Mock Model Provider 和 Outbox Dispatcher；
 - Docker Compose 和 Windows 一键启动、停止、加密备份脚本；
 - Account / Account Profile Version 的数据库约束、完整 API 和账号定位页面；
-- 可恢复归档、手动定位草稿、显式激活、单 Active 版本与不可变历史。
+- 可恢复归档、手动定位草稿、显式激活、单 Active 版本与不可变历史；
+- Content Project / Creation Origin、显式完成状态、账号 Context 与单 Primary 约束。
 
-Project、Topic、Material 及后续创作模块仍在按基线顺序开发，当前版本不应视为可验收的完整 V1。
+Topic、Material 及后续创作模块仍在按基线顺序开发，当前版本不应视为可验收的完整 V1。
 
 ## Windows 本地启动
 

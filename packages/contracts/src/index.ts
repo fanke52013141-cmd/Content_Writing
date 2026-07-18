@@ -3,3 +3,4 @@ export * from './errors.js';
 export * from './generation.js';
 export * from './hot-topics.js';
 export * from './identity.js';
+export * from './project.js';

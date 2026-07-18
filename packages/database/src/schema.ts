@@ -1,6 +1,7 @@
 import {
   boolean,
   check,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -41,6 +42,29 @@ export const accountProfileStatus = pgEnum('account_profile_status', [
   'historical',
 ]);
 export const accountProfileSource = pgEnum('account_profile_source', ['manual', 'ai']);
+export const contentObjectType = pgEnum('content_object_type', [
+  'project',
+  'topic',
+  'material',
+  'outline',
+  'article',
+  'review',
+  'image_asset',
+  'formatted_article',
+]);
+export const contentObjectStatus = pgEnum('content_object_status', [
+  'active',
+  'completed',
+  'archived',
+  'deleted',
+]);
+export const projectCreationOrigin = pgEnum('project_creation_origin', [
+  'hot_topic',
+  'topic',
+  'idea',
+  'existing_article',
+  'blank',
+]);
 
 export const localUsers = pgTable(
   'local_users',
@@ -267,9 +291,86 @@ export const accountProfileVersions = pgTable(
   ],
 );
 
+export const contentObjects = pgTable(
+  'content_objects',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    ownerUserId: uuid('owner_user_id')
+      .notNull()
+      .references(() => localUsers.id, { onDelete: 'restrict' }),
+    objectType: contentObjectType('object_type').notNull(),
+    status: contentObjectStatus('status').default('active').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex('content_objects_id_owner_uq').on(table.id, table.ownerUserId),
+    index('content_objects_owner_type_status_idx').on(
+      table.ownerUserId,
+      table.objectType,
+      table.status,
+      table.updatedAt,
+    ),
+  ],
+);
+
+export const contentProjects = pgTable(
+  'content_projects',
+  {
+    id: uuid('id').primaryKey(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    title: text('title').notNull(),
+    creationOrigin: projectCreationOrigin('creation_origin').notNull(),
+    originNote: text('origin_note').default('').notNull(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex('content_projects_id_owner_uq').on(table.id, table.ownerUserId),
+    foreignKey({
+      columns: [table.id, table.ownerUserId],
+      foreignColumns: [contentObjects.id, contentObjects.ownerUserId],
+      name: 'content_projects_object_fk',
+    }).onDelete('restrict'),
+    check('content_projects_title_nonempty_ck', sql`length(btrim(${table.title})) > 0`),
+  ],
+);
+
+export const projectAccounts = pgTable(
+  'project_accounts',
+  {
+    projectId: uuid('project_id').notNull(),
+    accountId: uuid('account_id').notNull(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    isPrimary: boolean('is_primary').default(false).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.projectId, table.ownerUserId],
+      foreignColumns: [contentProjects.id, contentProjects.ownerUserId],
+      name: 'project_accounts_project_fk',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.accountId, table.ownerUserId],
+      foreignColumns: [accounts.id, accounts.ownerUserId],
+      name: 'project_accounts_account_fk',
+    }).onDelete('restrict'),
+    uniqueIndex('project_accounts_project_account_uq').on(table.projectId, table.accountId),
+    uniqueIndex('project_accounts_single_primary_uq')
+      .on(table.projectId)
+      .where(sql`${table.isPrimary} = true`),
+    index('project_accounts_account_idx').on(table.accountId),
+  ],
+);
+
 export type LocalUserRecord = typeof localUsers.$inferSelect;
 export type NewOutboxEvent = typeof outboxEvents.$inferInsert;
 export type PromptVersionRecord = typeof promptVersions.$inferSelect;
 export type AiGenerationRecord = typeof aiGenerations.$inferSelect;
 export type AccountRecord = typeof accounts.$inferSelect;
 export type AccountProfileVersionRecord = typeof accountProfileVersions.$inferSelect;
+export type ContentObjectRecord = typeof contentObjects.$inferSelect;
+export type ContentProjectRecord = typeof contentProjects.$inferSelect;
+export type ProjectAccountRecord = typeof projectAccounts.$inferSelect;

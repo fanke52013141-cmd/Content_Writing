@@ -4,6 +4,7 @@ import {
   accountProfileVersionSchema,
   createAccountProfileDraftSchema,
   createAccountSchema,
+  createContentProjectSchema,
   apiErrorSchema,
   generationJobSchema,
   createGenerationSchema,
@@ -13,6 +14,7 @@ import {
   modelRequestSchema,
   setLocalPinSchema,
   updateLocalUserSchema,
+  updateContentProjectSchema,
 } from './index.js';
 
 describe('shared contracts', () => {
@@ -201,5 +203,23 @@ describe('shared contracts', () => {
         supersededAt: null,
       }).source,
     ).toBe('manual');
+  });
+
+  it('requires an explicit project creation origin without imposing workflow steps', () => {
+    expect(
+      createContentProjectSchema.parse({ title: '第一篇文章', creationOrigin: 'blank' }),
+    ).toEqual({
+      title: '第一篇文章',
+      creationOrigin: 'blank',
+      originNote: '',
+    });
+    expect(createContentProjectSchema.safeParse({ title: '缺少起点' }).success).toBe(false);
+  });
+
+  it('accepts user-controlled project completion and rejects implicit workflow fields', () => {
+    expect(updateContentProjectSchema.parse({ status: 'completed' })).toEqual({
+      status: 'completed',
+    });
+    expect(updateContentProjectSchema.safeParse({ currentStep: 3 }).success).toBe(false);
   });
 });

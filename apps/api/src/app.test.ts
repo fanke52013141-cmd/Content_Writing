@@ -6,6 +6,7 @@ import { loadEnvironment } from './config/environment.js';
 import { InMemoryAccountRepository } from './modules/accounts/account.repository.js';
 import { InMemoryGenerationRepository } from './modules/generations/generation.repository.js';
 import { InMemoryLocalUserRepository } from './modules/identity/local-user.repository.js';
+import { InMemoryProjectRepository } from './modules/projects/project.repository.js';
 
 describe('API infrastructure', () => {
   let app: NestFastifyApplication;
@@ -15,6 +16,7 @@ describe('API infrastructure', () => {
       localUserRepository: new InMemoryLocalUserRepository(),
       generationRepository: new InMemoryGenerationRepository(),
       accountRepository: new InMemoryAccountRepository(),
+      projectRepository: new InMemoryProjectRepository(),
     });
   });
 

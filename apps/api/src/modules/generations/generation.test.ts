@@ -6,6 +6,7 @@ import { createApp } from '../../app.js';
 import { InMemoryAccountRepository } from '../accounts/account.repository.js';
 import { InMemoryLocalUserRepository } from '../identity/local-user.repository.js';
 import { InMemoryGenerationRepository } from './generation.repository.js';
+import { InMemoryProjectRepository } from '../projects/project.repository.js';
 
 describe('generation command API', () => {
   let app: NestFastifyApplication;
@@ -16,6 +17,7 @@ describe('generation command API', () => {
       localUserRepository: new InMemoryLocalUserRepository(),
       generationRepository: new InMemoryGenerationRepository(),
       accountRepository: new InMemoryAccountRepository(),
+      projectRepository: new InMemoryProjectRepository(),
     });
   });
 
