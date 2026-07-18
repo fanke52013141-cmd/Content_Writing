@@ -139,6 +139,27 @@ jobs:
           curl --fail --silent \
             "http://127.0.0.1:3100/api/v1/topics/$topic_id" \
             | jq -e '.title == "CI 可复用选题" and .status == "active"'
+          material_id="$(curl --fail --silent \
+            --request POST \
+            --header 'content-type: application/json' \
+            --data '{"title":"CI 文本素材","kind":"plain_text","content":"Docker 冷启动素材验收正文"}' \
+            http://127.0.0.1:3100/api/v1/materials/text | jq -r '.id')"
+          curl --fail --silent \
+            --request PUT \
+            "http://127.0.0.1:3100/api/v1/materials/$material_id/projects/$project_id" \
+            | jq -e --arg project_id "$project_id" \
+              '.projectLinks == [{"projectId":$project_id,"projectTitle":"CI 创作项目"}]'
+          curl --fail --silent \
+            --request PUT \
+            "http://127.0.0.1:3100/api/v1/materials/$material_id/topics/$topic_id" \
+            | jq -e --arg topic_id "$topic_id" \
+              '.topicLinks == [{"topicId":$topic_id,"topicTitle":"CI 可复用选题"}]'
+          curl --fail --silent \
+            --request PATCH \
+            --header 'content-type: application/json' \
+            --data '{"status":"archived"}' \
+            "http://127.0.0.1:3100/api/v1/materials/$material_id" \
+            | jq -e '.status == "archived" and (.archivedAt != null)'
           generation_id="$({
             curl --fail --silent \
               --request POST \

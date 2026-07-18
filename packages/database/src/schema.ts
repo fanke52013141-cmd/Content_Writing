@@ -73,6 +73,20 @@ export const contentRelationType = pgEnum('content_relation_type', [
   'project_has_outline',
   'project_has_article',
 ]);
+export const materialKind = pgEnum('material_kind', [
+  'plain_text',
+  'markdown',
+  'docx',
+  'pdf',
+  'webpage',
+]);
+export const termsReviewStatus = pgEnum('terms_review_status', [
+  'not_applicable',
+  'pending',
+  'approved',
+  'restricted',
+]);
+export const contentFileRole = pgEnum('content_file_role', ['original', 'raw_snapshot', 'image']);
 
 export const localUsers = pgTable(
   'local_users',
@@ -409,6 +423,73 @@ export const topics = pgTable(
   ],
 );
 
+export const materials = pgTable(
+  'materials',
+  {
+    id: uuid('id').primaryKey(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    title: text('title').notNull(),
+    kind: materialKind('kind').notNull(),
+    sourceText: text('source_text'),
+    extractedText: text('extracted_text').notNull(),
+    notes: text('notes').default('').notNull(),
+    sourceUrl: text('source_url'),
+    sourceTitle: text('source_title').default('').notNull(),
+    sourceSiteName: text('source_site_name').default('').notNull(),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }),
+    termsReviewStatus: termsReviewStatus('terms_review_status').default('not_applicable').notNull(),
+    extractionWarnings: text('extraction_warnings')
+      .array()
+      .default(sql`'{}'::text[]`)
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('materials_id_owner_uq').on(table.id, table.ownerUserId),
+    foreignKey({
+      columns: [table.id, table.ownerUserId],
+      foreignColumns: [contentObjects.id, contentObjects.ownerUserId],
+      name: 'materials_object_fk',
+    }).onDelete('restrict'),
+    index('materials_kind_idx').on(table.kind),
+    check('materials_title_nonempty_ck', sql`length(btrim(${table.title})) > 0`),
+    check('materials_text_nonempty_ck', sql`length(btrim(${table.extractedText})) > 0`),
+  ],
+);
+
+export const contentFiles = pgTable(
+  'content_files',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    contentObjectId: uuid('content_object_id').notNull(),
+    fileRole: contentFileRole('file_role').notNull(),
+    storageKey: text('storage_key').notNull(),
+    originalFilename: text('original_filename').default('').notNull(),
+    mimeType: text('mime_type').notNull(),
+    byteSize: integer('byte_size').notNull(),
+    sha256: text('sha256').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.contentObjectId, table.ownerUserId],
+      foreignColumns: [contentObjects.id, contentObjects.ownerUserId],
+      name: 'content_files_object_fk',
+    }).onDelete('restrict'),
+    uniqueIndex('content_files_storage_key_uq').on(table.storageKey),
+    uniqueIndex('content_files_single_source_role_uq')
+      .on(table.contentObjectId, table.fileRole)
+      .where(sql`${table.fileRole} IN ('original', 'raw_snapshot') AND ${table.deletedAt} IS NULL`),
+    index('content_files_expiry_idx')
+      .on(table.expiresAt)
+      .where(sql`${table.expiresAt} IS NOT NULL AND ${table.deletedAt} IS NULL`),
+    check('content_files_size_ck', sql`${table.byteSize} >= 0`),
+    check('content_files_sha256_ck', sql`${table.sha256} ~ '^[a-f0-9]{64}$'`),
+  ],
+);
+
 export const contentRelations = pgTable(
   'content_relations',
   {
@@ -462,4 +543,6 @@ export type ContentObjectRecord = typeof contentObjects.$inferSelect;
 export type ContentProjectRecord = typeof contentProjects.$inferSelect;
 export type ProjectAccountRecord = typeof projectAccounts.$inferSelect;
 export type TopicRecord = typeof topics.$inferSelect;
+export type MaterialRecord = typeof materials.$inferSelect;
+export type ContentFileRecord = typeof contentFiles.$inferSelect;
 export type ContentRelationRecord = typeof contentRelations.$inferSelect;

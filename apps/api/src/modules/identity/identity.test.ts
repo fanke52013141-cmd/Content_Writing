@@ -8,6 +8,7 @@ import { InMemoryGenerationRepository } from '../generations/generation.reposito
 import { InMemoryLocalUserRepository } from './local-user.repository.js';
 import { PinHasher } from './pin-hasher.js';
 import { InMemoryProjectRepository } from '../projects/project.repository.js';
+import { InMemoryMaterialRepository } from '../materials/material.repository.js';
 import { InMemoryTopicRepository } from '../topics/topic.repository.js';
 
 describe('local identity API', () => {
@@ -22,6 +23,7 @@ describe('local identity API', () => {
       accountRepository: new InMemoryAccountRepository(),
       projectRepository: new InMemoryProjectRepository(),
       topicRepository: new InMemoryTopicRepository(),
+      materialRepository: new InMemoryMaterialRepository(),
     });
   });
 

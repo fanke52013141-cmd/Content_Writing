@@ -17,6 +17,9 @@ import {
   updateLocalUserSchema,
   updateContentProjectSchema,
   updateTopicSchema,
+  createTextMaterialSchema,
+  createUrlMaterialSchema,
+  updateMaterialSchema,
 } from './index.js';
 
 describe('shared contracts', () => {
@@ -238,5 +241,39 @@ describe('shared contracts', () => {
   it('keeps topic lifecycle and AI provenance outside client-controlled creation fields', () => {
     expect(createTopicSchema.safeParse({ title: '选题', source: 'ai' }).success).toBe(false);
     expect(updateTopicSchema.parse({ status: 'archived' })).toEqual({ status: 'archived' });
+  });
+
+  it('accepts only the approved inline material kinds and keeps provenance server-controlled', () => {
+    expect(
+      createTextMaterialSchema.parse({
+        title: '创作笔记',
+        kind: 'markdown',
+        content: '# 一个判断',
+      }),
+    ).toEqual({
+      title: '创作笔记',
+      kind: 'markdown',
+      content: '# 一个判断',
+      notes: '',
+    });
+    expect(
+      createTextMaterialSchema.safeParse({
+        title: '伪造来源',
+        kind: 'pdf',
+        content: '不是 PDF',
+        sha256: 'forged',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('allows HTTP(S) URL import and explicit terms review without accepting local file URLs', () => {
+    expect(createUrlMaterialSchema.parse({ url: 'https://example.com/article' })).toEqual({
+      url: 'https://example.com/article',
+      notes: '',
+    });
+    expect(createUrlMaterialSchema.safeParse({ url: 'file:///C:/secret.txt' }).success).toBe(false);
+    expect(updateMaterialSchema.parse({ termsReviewStatus: 'approved' })).toEqual({
+      termsReviewStatus: 'approved',
+    });
   });
 });

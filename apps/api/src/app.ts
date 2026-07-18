@@ -1,4 +1,5 @@
 import helmet from '@fastify/helmet';
+import multipart from '@fastify/multipart';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -19,6 +20,20 @@ import {
   type LocalUserRepository,
 } from './modules/identity/local-user.repository.js';
 import {
+  MatureDocumentExtractor,
+  SafeWebpageExtractor,
+  type DocumentExtractor,
+  type WebpageExtractor,
+} from './modules/materials/material-extractor.js';
+import {
+  PostgresMaterialRepository,
+  type MaterialRepository,
+} from './modules/materials/material.repository.js';
+import {
+  LocalFileStorageProvider,
+  type StorageProvider,
+} from './modules/materials/storage.provider.js';
+import {
   PostgresProjectRepository,
   type ProjectRepository,
 } from './modules/projects/project.repository.js';
@@ -33,6 +48,10 @@ export interface CreateAppOptions {
   accountRepository?: AccountRepository;
   projectRepository?: ProjectRepository;
   topicRepository?: TopicRepository;
+  materialRepository?: MaterialRepository;
+  storageProvider?: StorageProvider;
+  documentExtractor?: DocumentExtractor;
+  webpageExtractor?: WebpageExtractor;
 }
 
 function createRuntimeRepositories(): {
@@ -41,6 +60,7 @@ function createRuntimeRepositories(): {
   accountRepository: AccountRepository;
   projectRepository: ProjectRepository;
   topicRepository: TopicRepository;
+  materialRepository: MaterialRepository;
 } {
   const { databaseUrl } = loadEnvironment();
   if (!databaseUrl) {
@@ -52,6 +72,7 @@ function createRuntimeRepositories(): {
     accountRepository: new PostgresAccountRepository(databaseUrl),
     projectRepository: new PostgresProjectRepository(databaseUrl),
     topicRepository: new PostgresTopicRepository(databaseUrl),
+    materialRepository: new PostgresMaterialRepository(databaseUrl),
   };
 }
 
@@ -61,7 +82,8 @@ export async function createApp(options: CreateAppOptions = {}): Promise<NestFas
     options.generationRepository &&
     options.accountRepository &&
     options.projectRepository &&
-    options.topicRepository
+    options.topicRepository &&
+    options.materialRepository
       ? null
       : createRuntimeRepositories();
   const localUserRepository =
@@ -71,15 +93,22 @@ export async function createApp(options: CreateAppOptions = {}): Promise<NestFas
   const accountRepository = options.accountRepository ?? runtimeRepositories?.accountRepository;
   const projectRepository = options.projectRepository ?? runtimeRepositories?.projectRepository;
   const topicRepository = options.topicRepository ?? runtimeRepositories?.topicRepository;
+  const materialRepository = options.materialRepository ?? runtimeRepositories?.materialRepository;
+  const environment = loadEnvironment();
+  const storageProvider =
+    options.storageProvider ?? new LocalFileStorageProvider(environment.storageRoot);
+  const documentExtractor = options.documentExtractor ?? new MatureDocumentExtractor();
+  const webpageExtractor = options.webpageExtractor ?? new SafeWebpageExtractor();
   if (
     !localUserRepository ||
     !generationRepository ||
     !accountRepository ||
     !projectRepository ||
-    !topicRepository
+    !topicRepository ||
+    !materialRepository
   ) {
     throw new Error(
-      'Local-user, generation, account, project and topic repositories are required.',
+      'Local-user, generation, account, project, topic and material repositories are required.',
     );
   }
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -89,9 +118,13 @@ export async function createApp(options: CreateAppOptions = {}): Promise<NestFas
       accountRepository,
       projectRepository,
       topicRepository,
+      materialRepository,
+      storageProvider,
+      documentExtractor,
+      webpageExtractor,
     ),
     new FastifyAdapter({
-      bodyLimit: 1_048_576,
+      bodyLimit: 25 * 1024 * 1024,
       genReqId: () => crypto.randomUUID(),
       trustProxy: false,
     }),
@@ -100,6 +133,9 @@ export async function createApp(options: CreateAppOptions = {}): Promise<NestFas
 
   await app.register(helmet, {
     contentSecurityPolicy: false,
+  });
+  await app.register(multipart, {
+    limits: { files: 1, fileSize: 20 * 1024 * 1024, fields: 4, fieldSize: 20_000 },
   });
   app.enableCors({
     origin: ['http://127.0.0.1:3000', 'http://localhost:3000'],

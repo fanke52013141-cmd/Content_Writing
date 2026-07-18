@@ -6,6 +6,7 @@ import { loadEnvironment } from './config/environment.js';
 import { InMemoryAccountRepository } from './modules/accounts/account.repository.js';
 import { InMemoryGenerationRepository } from './modules/generations/generation.repository.js';
 import { InMemoryLocalUserRepository } from './modules/identity/local-user.repository.js';
+import { InMemoryMaterialRepository } from './modules/materials/material.repository.js';
 import { InMemoryProjectRepository } from './modules/projects/project.repository.js';
 import { InMemoryTopicRepository } from './modules/topics/topic.repository.js';
 
@@ -19,6 +20,7 @@ describe('API infrastructure', () => {
       accountRepository: new InMemoryAccountRepository(),
       projectRepository: new InMemoryProjectRepository(),
       topicRepository: new InMemoryTopicRepository(),
+      materialRepository: new InMemoryMaterialRepository(),
     });
   });
 

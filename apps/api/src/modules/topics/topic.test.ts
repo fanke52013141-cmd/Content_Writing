@@ -6,6 +6,7 @@ import { createApp } from '../../app.js';
 import { InMemoryAccountRepository } from '../accounts/account.repository.js';
 import { InMemoryGenerationRepository } from '../generations/generation.repository.js';
 import { InMemoryLocalUserRepository } from '../identity/local-user.repository.js';
+import { InMemoryMaterialRepository } from '../materials/material.repository.js';
 import { InMemoryProjectRepository } from '../projects/project.repository.js';
 import { InMemoryTopicRepository } from './topic.repository.js';
 
@@ -27,6 +28,7 @@ describe('topic API', () => {
         new Set([accountId]),
         new Map([[projectId, '本地 AI 创作实践']]),
       ),
+      materialRepository: new InMemoryMaterialRepository(),
     });
   });
 

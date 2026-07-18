@@ -6,6 +6,7 @@ import { createApp } from '../../app.js';
 import { InMemoryAccountRepository } from '../accounts/account.repository.js';
 import { InMemoryGenerationRepository } from '../generations/generation.repository.js';
 import { InMemoryLocalUserRepository } from '../identity/local-user.repository.js';
+import { InMemoryMaterialRepository } from '../materials/material.repository.js';
 import { InMemoryProjectRepository } from './project.repository.js';
 import { InMemoryTopicRepository } from '../topics/topic.repository.js';
 
@@ -28,6 +29,7 @@ describe('content project API', () => {
         ]),
       ),
       topicRepository: new InMemoryTopicRepository(),
+      materialRepository: new InMemoryMaterialRepository(),
     });
   });
 

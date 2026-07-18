@@ -18,8 +18,11 @@ Phase 0 工程基础已经通过真实 Docker 冷启动验收，当前进入 Pha
 - Content Project / Creation Origin、显式完成状态、账号 Context 与单 Primary 约束。
 - 独立 Topic 选题资产、可选账号 Context、项目关系、单 Primary 与关系历史保留；
 - 选题库页面支持创建、编辑、项目关联/解绑以及归档恢复。
+- Material 素材库支持纯文本、Markdown、网页 URL、DOCX 与文本 PDF；
+- Mozilla Readability 网页抽取、Mammoth DOCX、Mozilla PDF.js 文本抽取、本地文件哈希与 14 天网页快照；
+- 素材条款审查状态、项目/选题 Context、搜索、编辑与归档恢复。
 
-Material 及后续创作模块仍在按基线顺序开发，当前版本不应视为可验收的完整 V1。
+Outline、Article、Review、Revision 及后续热点、排版导出模块仍在按基线顺序开发，当前版本不应视为可验收的完整 V1。
 
 ## Windows 本地启动
 

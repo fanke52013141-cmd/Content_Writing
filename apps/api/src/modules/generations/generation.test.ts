@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../../app.js';
 import { InMemoryAccountRepository } from '../accounts/account.repository.js';
 import { InMemoryLocalUserRepository } from '../identity/local-user.repository.js';
+import { InMemoryMaterialRepository } from '../materials/material.repository.js';
 import { InMemoryGenerationRepository } from './generation.repository.js';
 import { InMemoryProjectRepository } from '../projects/project.repository.js';
 import { InMemoryTopicRepository } from '../topics/topic.repository.js';
@@ -20,6 +21,7 @@ describe('generation command API', () => {
       accountRepository: new InMemoryAccountRepository(),
       projectRepository: new InMemoryProjectRepository(),
       topicRepository: new InMemoryTopicRepository(),
+      materialRepository: new InMemoryMaterialRepository(),
     });
   });
 

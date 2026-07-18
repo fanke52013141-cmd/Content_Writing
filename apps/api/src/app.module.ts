@@ -7,6 +7,13 @@ import { GenerationModule } from './modules/generations/generation.module.js';
 import type { GenerationRepository } from './modules/generations/generation.repository.js';
 import { IdentityModule } from './modules/identity/identity.module.js';
 import type { LocalUserRepository } from './modules/identity/local-user.repository.js';
+import { MaterialModule } from './modules/materials/material.module.js';
+import type {
+  DocumentExtractor,
+  WebpageExtractor,
+} from './modules/materials/material-extractor.js';
+import type { MaterialRepository } from './modules/materials/material.repository.js';
+import type { StorageProvider } from './modules/materials/storage.provider.js';
 import { ProjectModule } from './modules/projects/project.module.js';
 import type { ProjectRepository } from './modules/projects/project.repository.js';
 import { TopicModule } from './modules/topics/topic.module.js';
@@ -20,6 +27,10 @@ export class AppModule {
     accountRepository: AccountRepository,
     projectRepository: ProjectRepository,
     topicRepository: TopicRepository,
+    materialRepository: MaterialRepository,
+    storageProvider: StorageProvider,
+    documentExtractor: DocumentExtractor,
+    webpageExtractor: WebpageExtractor,
   ): DynamicModule {
     const identityModule = IdentityModule.register(localUserRepository);
     return {
@@ -27,6 +38,13 @@ export class AppModule {
       imports: [
         AccountModule.register(accountRepository, identityModule),
         GenerationModule.register(generationRepository, identityModule),
+        MaterialModule.register(
+          materialRepository,
+          storageProvider,
+          documentExtractor,
+          webpageExtractor,
+          identityModule,
+        ),
         ProjectModule.register(projectRepository, identityModule),
         TopicModule.register(topicRepository, identityModule),
       ],

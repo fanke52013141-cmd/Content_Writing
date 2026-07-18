@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../../app.js';
 import { InMemoryGenerationRepository } from '../generations/generation.repository.js';
 import { InMemoryLocalUserRepository } from '../identity/local-user.repository.js';
+import { InMemoryMaterialRepository } from '../materials/material.repository.js';
 import { InMemoryAccountRepository } from './account.repository.js';
 import { InMemoryProjectRepository } from '../projects/project.repository.js';
 import { InMemoryTopicRepository } from '../topics/topic.repository.js';
@@ -32,6 +33,7 @@ describe('account and profile API', () => {
       accountRepository: new InMemoryAccountRepository(),
       projectRepository: new InMemoryProjectRepository(),
       topicRepository: new InMemoryTopicRepository(),
+      materialRepository: new InMemoryMaterialRepository(),
     });
   });
 
