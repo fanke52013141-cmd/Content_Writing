@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createApp } from './app.js';
 import { loadEnvironment } from './config/environment.js';
+import { InMemoryAccountRepository } from './modules/accounts/account.repository.js';
 import { InMemoryGenerationRepository } from './modules/generations/generation.repository.js';
 import { InMemoryLocalUserRepository } from './modules/identity/local-user.repository.js';
 
@@ -13,6 +14,7 @@ describe('API infrastructure', () => {
     app = await createApp({
       localUserRepository: new InMemoryLocalUserRepository(),
       generationRepository: new InMemoryGenerationRepository(),
+      accountRepository: new InMemoryAccountRepository(),
     });
   });
 

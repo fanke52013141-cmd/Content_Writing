@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  accountProfileVersionSchema,
+  createAccountProfileDraftSchema,
+  createAccountSchema,
   apiErrorSchema,
   generationJobSchema,
   createGenerationSchema,
@@ -145,5 +148,58 @@ describe('shared contracts', () => {
         }),
       ),
     ).not.toContain('pinHash');
+  });
+
+  it('normalizes account creation and rejects unknown management fields', () => {
+    expect(createAccountSchema.parse({ name: '  我的账号  ' })).toEqual({
+      name: '我的账号',
+      description: '',
+    });
+    expect(
+      createAccountSchema.safeParse({ name: '账号', ownerUserId: crypto.randomUUID() }).success,
+    ).toBe(false);
+  });
+
+  it('supports structured profile drafts without allowing lifecycle fields from clients', () => {
+    const draft = createAccountProfileDraftSchema.parse({
+      positioningStatement: '帮助个人创作者稳定输出',
+      targetAudience: '独立运营公众号的个人创作者',
+      valueProposition: '可直接执行的内容方法',
+      contentPillars: ['选题', '写作'],
+      toneKeywords: ['克制', '清晰'],
+      writingStyle: '短段落，先结论后论据',
+      contentBoundaries: '不虚构数据',
+    });
+
+    expect(draft.versionNote).toBe('');
+    expect(createAccountProfileDraftSchema.safeParse({ ...draft, status: 'active' }).success).toBe(
+      false,
+    );
+  });
+
+  it('keeps profile source and activation metadata explicit in output contracts', () => {
+    const timestamp = '2026-07-18T00:00:00.000Z';
+    expect(
+      accountProfileVersionSchema.parse({
+        id: crypto.randomUUID(),
+        accountId: crypto.randomUUID(),
+        versionNumber: 1,
+        status: 'draft',
+        source: 'manual',
+        positioningStatement: '',
+        targetAudience: '',
+        valueProposition: '',
+        contentPillars: [],
+        toneKeywords: [],
+        writingStyle: '',
+        contentBoundaries: '',
+        versionNote: '',
+        sourceGenerationId: null,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+        activatedAt: null,
+        supersededAt: null,
+      }).source,
+    ).toBe('manual');
   });
 });

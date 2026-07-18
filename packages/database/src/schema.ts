@@ -34,6 +34,14 @@ export const generationStatus = pgEnum('generation_status', [
   'cancelled',
 ]);
 
+export const accountStatus = pgEnum('account_status', ['active', 'inactive', 'archived']);
+export const accountProfileStatus = pgEnum('account_profile_status', [
+  'draft',
+  'active',
+  'historical',
+]);
+export const accountProfileSource = pgEnum('account_profile_source', ['manual', 'ai']);
+
 export const localUsers = pgTable(
   'local_users',
   {
@@ -190,7 +198,78 @@ export const generationEvents = pgTable(
   ],
 );
 
+export const accounts = pgTable(
+  'accounts',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    ownerUserId: uuid('owner_user_id')
+      .notNull()
+      .references(() => localUsers.id, { onDelete: 'restrict' }),
+    name: text('name').notNull(),
+    description: text('description').default('').notNull(),
+    status: accountStatus('status').default('active').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    archivedAt: timestamp('archived_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('accounts_owner_status_idx').on(table.ownerUserId, table.status, table.updatedAt),
+    check('accounts_name_nonempty_ck', sql`length(btrim(${table.name})) > 0`),
+    check(
+      'accounts_archive_consistency_ck',
+      sql`(${table.status} = 'archived' AND ${table.archivedAt} IS NOT NULL) OR (${table.status} <> 'archived' AND ${table.archivedAt} IS NULL)`,
+    ),
+  ],
+);
+
+export const accountProfileVersions = pgTable(
+  'account_profile_versions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    accountId: uuid('account_id')
+      .notNull()
+      .references(() => accounts.id, { onDelete: 'restrict' }),
+    versionNumber: integer('version_number').notNull(),
+    status: accountProfileStatus('status').default('draft').notNull(),
+    source: accountProfileSource('source').default('manual').notNull(),
+    positioningStatement: text('positioning_statement').default('').notNull(),
+    targetAudience: text('target_audience').default('').notNull(),
+    valueProposition: text('value_proposition').default('').notNull(),
+    contentPillars: text('content_pillars')
+      .array()
+      .default(sql`'{}'::text[]`)
+      .notNull(),
+    toneKeywords: text('tone_keywords')
+      .array()
+      .default(sql`'{}'::text[]`)
+      .notNull(),
+    writingStyle: text('writing_style').default('').notNull(),
+    contentBoundaries: text('content_boundaries').default('').notNull(),
+    versionNote: text('version_note').default('').notNull(),
+    sourceGenerationId: uuid('source_generation_id').references(() => aiGenerations.id, {
+      onDelete: 'restrict',
+    }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    activatedAt: timestamp('activated_at', { withTimezone: true }),
+    supersededAt: timestamp('superseded_at', { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex('account_profile_versions_account_number_uq').on(
+      table.accountId,
+      table.versionNumber,
+    ),
+    uniqueIndex('account_profile_versions_single_active_uq')
+      .on(table.accountId)
+      .where(sql`${table.status} = 'active'`),
+    index('account_profile_versions_account_created_idx').on(table.accountId, table.createdAt),
+    check('account_profile_versions_number_positive_ck', sql`${table.versionNumber} > 0`),
+  ],
+);
+
 export type LocalUserRecord = typeof localUsers.$inferSelect;
 export type NewOutboxEvent = typeof outboxEvents.$inferInsert;
 export type PromptVersionRecord = typeof promptVersions.$inferSelect;
 export type AiGenerationRecord = typeof aiGenerations.$inferSelect;
+export type AccountRecord = typeof accounts.$inferSelect;
+export type AccountProfileVersionRecord = typeof accountProfileVersions.$inferSelect;

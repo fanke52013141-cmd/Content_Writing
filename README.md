@@ -5,16 +5,18 @@
 
 ## 当前开发状态
 
-项目处于 Phase 0 工程基础阶段，已经包含：
+Phase 0 工程基础已经通过真实 Docker 冷启动验收，当前进入 Phase 1 核心对象开发。已经包含：
 
 - Next.js 16 中文桌面 App Shell；
 - NestJS/Fastify API、健康检查与 OpenAPI；
 - 本地单用户及可选 PIN 哈希接口；
 - PostgreSQL 迁移、Outbox、Prompt/Generation Trace 不可变约束；
 - 独立 BullMQ Worker、Mock Model Provider 和 Outbox Dispatcher；
-- Docker Compose 和 Windows 一键启动、停止、加密备份脚本。
+- Docker Compose 和 Windows 一键启动、停止、加密备份脚本；
+- Account / Account Profile Version 的数据库约束、完整 API 和账号定位页面；
+- 可恢复归档、手动定位草稿、显式激活、单 Active 版本与不可变历史。
 
-业务创作模块仍在按基线顺序开发，当前版本不应视为可验收的完整 V1。
+Project、Topic、Material 及后续创作模块仍在按基线顺序开发，当前版本不应视为可验收的完整 V1。
 
 ## Windows 本地启动
 

@@ -91,6 +91,20 @@ jobs:
         run: |
           curl --fail --silent http://127.0.0.1:3100/api/v1/health | jq -e '.status == "ok"'
           curl --fail --silent http://127.0.0.1:3000 | grep -q '今天想写点什么'
+          account_id="$(curl --fail --silent \
+            --request POST \
+            --header 'content-type: application/json' \
+            --data '{"name":"CI 账号","description":"Docker cold-start acceptance"}' \
+            http://127.0.0.1:3100/api/v1/accounts | jq -r '.id')"
+          profile_id="$(curl --fail --silent \
+            --request POST \
+            --header 'content-type: application/json' \
+            --data '{"positioningStatement":"帮助个人创作者稳定写作","targetAudience":"独立公众号创作者","valueProposition":"可执行的内容方法","contentPillars":["选题","写作"],"toneKeywords":["清晰"],"writingStyle":"先结论后论据","contentBoundaries":"不虚构事实","versionNote":"CI 验收"}' \
+            "http://127.0.0.1:3100/api/v1/accounts/$account_id/profile-versions" | jq -r '.id')"
+          curl --fail --silent \
+            --request POST \
+            "http://127.0.0.1:3100/api/v1/accounts/$account_id/profile-versions/$profile_id/activate" \
+            | jq -e '.status == "active"'
           generation_id="$({
             curl --fail --silent \
               --request POST \

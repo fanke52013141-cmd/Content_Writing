@@ -3,6 +3,7 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createApp } from '../../app.js';
+import { InMemoryAccountRepository } from '../accounts/account.repository.js';
 import { InMemoryGenerationRepository } from '../generations/generation.repository.js';
 import { InMemoryLocalUserRepository } from './local-user.repository.js';
 import { PinHasher } from './pin-hasher.js';
@@ -16,6 +17,7 @@ describe('local identity API', () => {
     app = await createApp({
       localUserRepository: repository,
       generationRepository: new InMemoryGenerationRepository(),
+      accountRepository: new InMemoryAccountRepository(),
     });
   });
 

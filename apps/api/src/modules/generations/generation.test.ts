@@ -3,6 +3,7 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createApp } from '../../app.js';
+import { InMemoryAccountRepository } from '../accounts/account.repository.js';
 import { InMemoryLocalUserRepository } from '../identity/local-user.repository.js';
 import { InMemoryGenerationRepository } from './generation.repository.js';
 
@@ -14,6 +15,7 @@ describe('generation command API', () => {
     app = await createApp({
       localUserRepository: new InMemoryLocalUserRepository(),
       generationRepository: new InMemoryGenerationRepository(),
+      accountRepository: new InMemoryAccountRepository(),
     });
   });
 

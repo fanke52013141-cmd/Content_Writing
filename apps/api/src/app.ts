@@ -7,6 +7,10 @@ import { AppModule } from './app.module.js';
 import { ApiExceptionFilter } from './common/api-exception.filter.js';
 import { loadEnvironment } from './config/environment.js';
 import {
+  PostgresAccountRepository,
+  type AccountRepository,
+} from './modules/accounts/account.repository.js';
+import {
   PostgresGenerationRepository,
   type GenerationRepository,
 } from './modules/generations/generation.repository.js';
@@ -18,11 +22,13 @@ import {
 export interface CreateAppOptions {
   localUserRepository?: LocalUserRepository;
   generationRepository?: GenerationRepository;
+  accountRepository?: AccountRepository;
 }
 
 function createRuntimeRepositories(): {
   localUserRepository: LocalUserRepository;
   generationRepository: GenerationRepository;
+  accountRepository: AccountRepository;
 } {
   const { databaseUrl } = loadEnvironment();
   if (!databaseUrl) {
@@ -31,23 +37,25 @@ function createRuntimeRepositories(): {
   return {
     localUserRepository: new PostgresLocalUserRepository(databaseUrl),
     generationRepository: new PostgresGenerationRepository(databaseUrl),
+    accountRepository: new PostgresAccountRepository(databaseUrl),
   };
 }
 
 export async function createApp(options: CreateAppOptions = {}): Promise<NestFastifyApplication> {
   const runtimeRepositories =
-    options.localUserRepository && options.generationRepository
+    options.localUserRepository && options.generationRepository && options.accountRepository
       ? null
       : createRuntimeRepositories();
   const localUserRepository =
     options.localUserRepository ?? runtimeRepositories?.localUserRepository;
   const generationRepository =
     options.generationRepository ?? runtimeRepositories?.generationRepository;
-  if (!localUserRepository || !generationRepository) {
-    throw new Error('Both local-user and generation repositories are required.');
+  const accountRepository = options.accountRepository ?? runtimeRepositories?.accountRepository;
+  if (!localUserRepository || !generationRepository || !accountRepository) {
+    throw new Error('Local-user, generation and account repositories are required.');
   }
   const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule.register(localUserRepository, generationRepository),
+    AppModule.register(localUserRepository, generationRepository, accountRepository),
     new FastifyAdapter({
       bodyLimit: 1_048_576,
       genReqId: () => crypto.randomUUID(),
@@ -58,6 +66,10 @@ export async function createApp(options: CreateAppOptions = {}): Promise<NestFas
 
   await app.register(helmet, {
     contentSecurityPolicy: false,
+  });
+  app.enableCors({
+    origin: ['http://127.0.0.1:3000', 'http://localhost:3000'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   });
   app.setGlobalPrefix('api/v1');
   app.useGlobalFilters(new ApiExceptionFilter());
