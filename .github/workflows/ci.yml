@@ -151,22 +151,34 @@ jobs:
           fi
           echo "$material_response" | jq -e '.kind == "plain_text" and (.id | length > 0)'
           material_id="$(jq -r '.id' <<< "$material_response")"
-          curl --fail --silent \
+          material_project_response=''
+          if ! material_project_response="$(curl --fail-with-body --silent --show-error \
             --request PUT \
-            "http://127.0.0.1:3100/api/v1/materials/$material_id/projects/$project_id" \
-            | jq -e --arg project_id "$project_id" \
-              '.projectLinks == [{"projectId":$project_id,"projectTitle":"CI 创作项目"}]'
-          curl --fail --silent \
+            "http://127.0.0.1:3100/api/v1/materials/$material_id/projects/$project_id")"; then
+            echo "::error title=Material project link failed::$material_project_response"
+            exit 1
+          fi
+          echo "$material_project_response" | jq -e --arg project_id "$project_id" \
+            '.projectLinks == [{"projectId":$project_id,"projectTitle":"CI 创作项目"}]'
+          material_topic_response=''
+          if ! material_topic_response="$(curl --fail-with-body --silent --show-error \
             --request PUT \
-            "http://127.0.0.1:3100/api/v1/materials/$material_id/topics/$topic_id" \
-            | jq -e --arg topic_id "$topic_id" \
-              '.topicLinks == [{"topicId":$topic_id,"topicTitle":"CI 可复用选题"}]'
-          curl --fail --silent \
+            "http://127.0.0.1:3100/api/v1/materials/$material_id/topics/$topic_id")"; then
+            echo "::error title=Material topic link failed::$material_topic_response"
+            exit 1
+          fi
+          echo "$material_topic_response" | jq -e --arg topic_id "$topic_id" \
+            '.topicLinks == [{"topicId":$topic_id,"topicTitle":"CI 可复用选题"}]'
+          material_archive_response=''
+          if ! material_archive_response="$(curl --fail-with-body --silent --show-error \
             --request PATCH \
             --header 'content-type: application/json' \
             --data '{"status":"archived"}' \
-            "http://127.0.0.1:3100/api/v1/materials/$material_id" \
-            | jq -e '.status == "archived" and (.archivedAt != null)'
+            "http://127.0.0.1:3100/api/v1/materials/$material_id")"; then
+            echo "::error title=Material archive failed::$material_archive_response"
+            exit 1
+          fi
+          echo "$material_archive_response" | jq -e '.status == "archived" and (.archivedAt != null)'
           generation_id="$({
             curl --fail --silent \
               --request POST \
