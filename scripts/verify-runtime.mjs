@@ -17,6 +17,12 @@ for (const binding of ['127.0.0.1:3000:3000', '127.0.0.1:3100:3100']) {
 if (!compose.includes('condition: service_completed_successfully')) {
   throw new Error('Application services must wait for successful migrations.');
 }
+if (!compose.includes('postgres_data:/var/lib/postgresql')) {
+  throw new Error('PostgreSQL 18 data must use its major-version-aware volume root.');
+}
+if (compose.includes('postgres_data:/var/lib/postgresql/data')) {
+  throw new Error('The pre-PostgreSQL-18 data mount is not supported.');
+}
 if (/image:\s+\S+:latest(?:\s|$)/u.test(compose)) {
   throw new Error('Compose must not use latest image tags.');
 }

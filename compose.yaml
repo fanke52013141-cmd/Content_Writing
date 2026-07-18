@@ -27,7 +27,7 @@ services:
     logging: *app-logging
     restart: unless-stopped
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
       - ./backups:/backups
     networks: [internal]
 
