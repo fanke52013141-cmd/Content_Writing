@@ -229,16 +229,16 @@ export class MaterialStore {
           .limit(1);
         if (material?.kind !== 'webpage') return 'invalid_context' as const;
       }
-      await transaction
-        .update(materials)
-        .set({
-          ...(input.title === undefined ? {} : { title: input.title }),
-          ...(input.notes === undefined ? {} : { notes: input.notes }),
-          ...(input.termsReviewStatus === undefined
-            ? {}
-            : { termsReviewStatus: input.termsReviewStatus }),
-        })
-        .where(eq(materials.id, materialId));
+      const materialPatch = {
+        ...(input.title === undefined ? {} : { title: input.title }),
+        ...(input.notes === undefined ? {} : { notes: input.notes }),
+        ...(input.termsReviewStatus === undefined
+          ? {}
+          : { termsReviewStatus: input.termsReviewStatus }),
+      };
+      if (Object.keys(materialPatch).length > 0) {
+        await transaction.update(materials).set(materialPatch).where(eq(materials.id, materialId));
+      }
       const now = new Date();
       await transaction
         .update(contentObjects)
