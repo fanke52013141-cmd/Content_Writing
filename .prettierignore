@@ -1,0 +1,9 @@
+*.cmd
+*.docx
+*.ps1
+**/next-env.d.ts
+.next-dev.*.log
+backups/
+data/
+node_modules/
+pnpm-lock.yaml

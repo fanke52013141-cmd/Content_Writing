@@ -1,0 +1,12 @@
+.git
+.github
+.next-dev.*.log
+**/.next
+**/.turbo
+**/coverage
+**/dist
+**/node_modules
+backups
+data
+node_modules
+test-results

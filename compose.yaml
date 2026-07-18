@@ -1,0 +1,157 @@
+name: content-writing
+
+x-app-environment: &app-environment
+  NODE_ENV: production
+  DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+  REDIS_URL: redis://redis:6379/0
+
+x-app-logging: &app-logging
+  driver: json-file
+  options:
+    max-file: '3'
+    max-size: 10m
+
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.1-pg18-bookworm
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    logging: *app-logging
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    networks: [internal]
+
+  redis:
+    image: redis:8.2.1-bookworm
+    command: [redis-server, --appendonly, 'yes', --maxmemory, 256mb, --maxmemory-policy, noeviction]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    logging: *app-logging
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks: [internal]
+
+  migrate:
+    build:
+      context: .
+      target: database-migrate
+    environment: *app-environment
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *app-logging
+    restart: 'no'
+    networks: [internal]
+
+  api:
+    build:
+      context: .
+      target: api
+    environment:
+      <<: *app-environment
+      API_HOST: 0.0.0.0
+      API_PORT: 3100
+      APP_VERSION: 0.1.0
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3100/api/v1/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    logging: *app-logging
+    ports:
+      - 127.0.0.1:3100:3100
+    restart: unless-stopped
+    volumes:
+      - ./data/storage:/app/data/storage
+    networks: [internal]
+
+  worker:
+    build:
+      context: .
+      target: worker
+    environment:
+      <<: *app-environment
+      WORKER_CONCURRENCY: 2
+      WORKER_HEALTH_HOST: 0.0.0.0
+      WORKER_HEALTH_PORT: 3200
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3200').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    logging: *app-logging
+    restart: unless-stopped
+    volumes:
+      - ./data/storage:/app/data/storage
+    networks: [internal]
+
+  web:
+    build:
+      context: .
+      target: web
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3000').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    logging: *app-logging
+    ports:
+      - 127.0.0.1:3000:3000
+    restart: unless-stopped
+    networks: [internal]
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

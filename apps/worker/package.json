@@ -1,0 +1,26 @@
+{
+  "name": "@content-writing/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsx watch src/main.ts",
+    "lint": "eslint src --max-warnings=0",
+    "start": "node dist/main.js",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@content-writing/ai-engine": "workspace:*",
+    "@content-writing/contracts": "workspace:*",
+    "@content-writing/database": "workspace:*",
+    "bullmq": "^5.66.4",
+    "ioredis": "^5.8.2",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0"
+  }
+}
