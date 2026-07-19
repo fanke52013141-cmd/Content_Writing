@@ -332,9 +332,20 @@ export function ArticleWorkspace() {
       setStatus('删除失败');
       return;
     }
+    if (deleteMode === 'archive') {
+      const archived = {
+        ...selected,
+        status: 'archived' as const,
+        archivedAt: new Date().toISOString(),
+      };
+      setArticles((current) => current.map((item) => (item.id === archived.id ? archived : item)));
+      select(archived);
+      setStatus('文章已归档，可用恢复按钮恢复');
+      return;
+    }
     setArticles((current) => current.filter((item) => item.id !== selected.id));
     reset();
-    setStatus(deleteMode === 'archive' ? '文章已归档，可恢复' : '文章已删除，审计记录已保留');
+    setStatus('文章已删除，审计记录已保留');
   }
 
   return (
