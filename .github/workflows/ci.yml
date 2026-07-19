@@ -179,6 +179,37 @@ jobs:
             exit 1
           fi
           echo "$material_archive_response" | jq -e '.status == "archived" and (.archivedAt != null)'
+          article_response=''
+          if ! article_response="$(curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header 'content-type: application/json' \
+            --data "{\"projectId\":\"$project_id\",\"topicId\":\"$topic_id\",\"title\":\"CI article\",\"body\":\"Initial article body\"}" \
+            http://127.0.0.1:3100/api/v1/articles)"; then
+            echo "::error title=Article create failed::Article create failed response: $article_response"
+            exit 1
+          fi
+          echo "$article_response" | jq -e '.status == "active" and (.currentVersion.status == "current")'
+          article_id="$(jq -r '.id' <<< "$article_response")"
+          current_version_id="$(jq -r '.currentVersionId' <<< "$article_response")"
+          candidate_response="$(curl --fail --silent \
+            --request POST \
+            --header 'content-type: application/json' \
+            --data '{"title":"CI candidate","body":"Candidate article body","kind":"ai_candidate"}' \
+            "http://127.0.0.1:3100/api/v1/articles/$article_id/candidates")"
+          echo "$candidate_response" | jq -e --arg current_version_id "$current_version_id" \
+            '.currentVersionId == $current_version_id and ([.versions[] | select(.status == "candidate")] | length == 1)'
+          candidate_version_id="$(jq -r '[.versions[] | select(.status == "candidate")][0].id' <<< "$candidate_response")"
+          accepted_response="$(curl --fail --silent \
+            --request POST \
+            "http://127.0.0.1:3100/api/v1/articles/$article_id/versions/$candidate_version_id/accept")"
+          echo "$accepted_response" | jq -e --arg candidate_version_id "$candidate_version_id" \
+            '.currentVersionId == $candidate_version_id and (.currentVersion.status == "current")'
+          review_response="$(curl --fail --silent \
+            --request POST \
+            --header 'content-type: application/json' \
+            --data "{\"versionId\":\"$candidate_version_id\",\"capabilityKey\":\"review.fact-risk\",\"verdict\":\"needs_revision\",\"summary\":\"CI review\",\"findings\":[]}" \
+            "http://127.0.0.1:3100/api/v1/articles/$article_id/reviews")"
+          echo "$review_response" | jq -e '.reviews | length == 1 and .[0].capabilityKey == "review.fact-risk"'
           generation_id="$({
             curl --fail --silent \
               --request POST \

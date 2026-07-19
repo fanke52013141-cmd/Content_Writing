@@ -3,6 +3,8 @@ import { type DynamicModule, Module } from '@nestjs/common';
 import { HealthController } from './modules/health/health.controller.js';
 import { AccountModule } from './modules/accounts/account.module.js';
 import type { AccountRepository } from './modules/accounts/account.repository.js';
+import { ArticleModule } from './modules/articles/article.module.js';
+import type { ArticleRepository } from './modules/articles/article.repository.js';
 import { GenerationModule } from './modules/generations/generation.module.js';
 import type { GenerationRepository } from './modules/generations/generation.repository.js';
 import { IdentityModule } from './modules/identity/identity.module.js';
@@ -31,6 +33,7 @@ export class AppModule {
     topicRepository: TopicRepository,
     materialRepository: MaterialRepository,
     outlineRepository: OutlineRepository,
+    articleRepository: ArticleRepository,
     storageProvider: StorageProvider,
     documentExtractor: DocumentExtractor,
     webpageExtractor: WebpageExtractor,
@@ -40,6 +43,7 @@ export class AppModule {
       module: AppModule,
       imports: [
         AccountModule.register(accountRepository, identityModule),
+        ArticleModule.register(articleRepository, identityModule),
         GenerationModule.register(generationRepository, identityModule),
         MaterialModule.register(
           materialRepository,

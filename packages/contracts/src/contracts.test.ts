@@ -22,6 +22,9 @@ import {
   updateMaterialSchema,
   outlineSchema,
   updateOutlineSchema,
+  articleSchema,
+  createArticleCandidateSchema,
+  reviewSchema,
 } from './index.js';
 
 describe('shared contracts', () => {
@@ -298,5 +301,46 @@ describe('shared contracts', () => {
     });
     expect(outline.sections).toHaveLength(1);
     expect(updateOutlineSchema.parse({ status: 'archived' })).toEqual({ status: 'archived' });
+  });
+
+  it('keeps article candidates separate from the current version and validates review capabilities', () => {
+    const articleId = crypto.randomUUID();
+    const versionId = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const version = {
+      id: versionId,
+      articleId,
+      versionNumber: 1,
+      title: '文章',
+      body: '正文',
+      kind: 'manual' as const,
+      status: 'current' as const,
+      sourceGenerationId: null,
+      sourceReviewId: null,
+      createdAt: now,
+      acceptedAt: now,
+    };
+    expect(
+      articleSchema.parse({
+        id: articleId,
+        projectId: null,
+        topicId: null,
+        outlineId: null,
+        title: '文章',
+        status: 'active',
+        currentVersionId: versionId,
+        currentVersion: version,
+        versions: [version],
+        reviews: [],
+        createdAt: now,
+        updatedAt: now,
+        archivedAt: null,
+      }).currentVersion.status,
+    ).toBe('current');
+    expect(
+      createArticleCandidateSchema.parse({ title: '候选', body: '正文', kind: 'ai_candidate' })
+        .kind,
+    ).toBe('ai_candidate');
+    expect(reviewSchema.shape.capabilityKey.parse('review.fact-risk')).toBe('review.fact-risk');
   });
 });

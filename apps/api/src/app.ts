@@ -46,6 +46,11 @@ import {
   PostgresOutlineRepository,
   type OutlineRepository,
 } from './modules/outlines/outline.repository.js';
+import {
+  InMemoryArticleRepository,
+  PostgresArticleRepository,
+  type ArticleRepository,
+} from './modules/articles/article.repository.js';
 
 export interface CreateAppOptions {
   localUserRepository?: LocalUserRepository;
@@ -55,6 +60,7 @@ export interface CreateAppOptions {
   topicRepository?: TopicRepository;
   materialRepository?: MaterialRepository;
   outlineRepository?: OutlineRepository;
+  articleRepository?: ArticleRepository;
   storageProvider?: StorageProvider;
   documentExtractor?: DocumentExtractor;
   webpageExtractor?: WebpageExtractor;
@@ -68,6 +74,7 @@ function createRuntimeRepositories(): {
   topicRepository: TopicRepository;
   materialRepository: MaterialRepository;
   outlineRepository: OutlineRepository;
+  articleRepository: ArticleRepository;
 } {
   const { databaseUrl } = loadEnvironment();
   if (!databaseUrl) {
@@ -81,6 +88,7 @@ function createRuntimeRepositories(): {
     topicRepository: new PostgresTopicRepository(databaseUrl),
     materialRepository: new PostgresMaterialRepository(databaseUrl),
     outlineRepository: new PostgresOutlineRepository(databaseUrl),
+    articleRepository: new PostgresArticleRepository(databaseUrl),
   };
 }
 
@@ -106,6 +114,10 @@ export async function createApp(options: CreateAppOptions = {}): Promise<NestFas
     options.outlineRepository ??
     runtimeRepositories?.outlineRepository ??
     new InMemoryOutlineRepository();
+  const articleRepository =
+    options.articleRepository ??
+    runtimeRepositories?.articleRepository ??
+    new InMemoryArticleRepository();
   const environment = loadEnvironment();
   const storageProvider =
     options.storageProvider ?? new LocalFileStorageProvider(environment.storageRoot);
@@ -132,6 +144,7 @@ export async function createApp(options: CreateAppOptions = {}): Promise<NestFas
       topicRepository,
       materialRepository,
       outlineRepository,
+      articleRepository,
       storageProvider,
       documentExtractor,
       webpageExtractor,

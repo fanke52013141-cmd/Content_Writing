@@ -88,6 +88,17 @@ export const termsReviewStatus = pgEnum('terms_review_status', [
 ]);
 export const contentFileRole = pgEnum('content_file_role', ['original', 'raw_snapshot', 'image']);
 export const outlineSource = pgEnum('outline_source', ['manual', 'ai']);
+export const articleVersionKind = pgEnum('article_version_kind', [
+  'manual',
+  'ai_candidate',
+  'revision_candidate',
+]);
+export const articleVersionStatus = pgEnum('article_version_status', [
+  'current',
+  'candidate',
+  'superseded',
+]);
+export const reviewVerdict = pgEnum('review_verdict', ['pass', 'needs_revision', 'blocked']);
 
 export const localUsers = pgTable(
   'local_users',
@@ -503,6 +514,119 @@ export const outlines = pgTable(
   ],
 );
 
+export const articles = pgTable(
+  'articles',
+  {
+    id: uuid('id').primaryKey(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    projectId: uuid('project_id'),
+    topicId: uuid('topic_id'),
+    outlineId: uuid('outline_id'),
+    title: text('title').notNull(),
+    currentVersionId: uuid('current_version_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('articles_id_owner_uq').on(table.id, table.ownerUserId),
+    foreignKey({
+      columns: [table.id, table.ownerUserId],
+      foreignColumns: [contentObjects.id, contentObjects.ownerUserId],
+      name: 'articles_object_fk',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.projectId, table.ownerUserId],
+      foreignColumns: [contentProjects.id, contentProjects.ownerUserId],
+      name: 'articles_project_fk',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.topicId, table.ownerUserId],
+      foreignColumns: [topics.id, topics.ownerUserId],
+      name: 'articles_topic_fk',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.outlineId, table.ownerUserId],
+      foreignColumns: [outlines.id, outlines.ownerUserId],
+      name: 'articles_outline_fk',
+    }).onDelete('restrict'),
+    index('articles_owner_updated_idx').on(table.ownerUserId, table.updatedAt),
+    check('articles_title_nonempty_ck', sql`length(btrim(${table.title})) > 0`),
+  ],
+);
+
+export const articleVersions = pgTable(
+  'article_versions',
+  {
+    id: uuid('id').primaryKey(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    articleId: uuid('article_id').notNull(),
+    versionNumber: integer('version_number').notNull(),
+    title: text('title').notNull(),
+    body: text('body').notNull(),
+    kind: articleVersionKind('kind').notNull(),
+    status: articleVersionStatus('status').notNull(),
+    sourceGenerationId: uuid('source_generation_id').references(() => aiGenerations.id, {
+      onDelete: 'restrict',
+    }),
+    sourceReviewId: uuid('source_review_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.id, table.ownerUserId],
+      foreignColumns: [articles.id, articles.ownerUserId],
+      name: 'article_versions_article_fk',
+    }).onDelete('restrict'),
+    uniqueIndex('article_versions_article_number_uq').on(table.articleId, table.versionNumber),
+    index('article_versions_article_created_idx').on(table.articleId, table.createdAt),
+    check('article_versions_number_positive_ck', sql`${table.versionNumber} > 0`),
+    check('article_versions_title_nonempty_ck', sql`length(btrim(${table.title})) > 0`),
+    check('article_versions_body_nonempty_ck', sql`length(btrim(${table.body})) > 0`),
+    check(
+      'article_versions_status_acceptance_ck',
+      sql`(${table.status} = 'current' AND ${table.acceptedAt} IS NOT NULL) OR (${table.status} <> 'current')`,
+    ),
+    uniqueIndex('article_versions_id_owner_uq').on(table.id, table.ownerUserId),
+  ],
+);
+
+export const articleReviews = pgTable(
+  'article_reviews',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    ownerUserId: uuid('owner_user_id').notNull(),
+    articleId: uuid('article_id').notNull(),
+    versionId: uuid('version_id').notNull(),
+    capabilityKey: text('capability_key').notNull(),
+    verdict: reviewVerdict('verdict').notNull(),
+    summary: text('summary').notNull(),
+    findings: jsonb('findings')
+      .default(sql`'[]'::jsonb`)
+      .notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.articleId, table.ownerUserId],
+      foreignColumns: [articles.id, articles.ownerUserId],
+      name: 'article_reviews_article_fk',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.versionId, table.ownerUserId],
+      foreignColumns: [articleVersions.id, articleVersions.ownerUserId],
+      name: 'article_reviews_version_fk',
+    }).onDelete('restrict'),
+    index('article_reviews_article_created_idx').on(table.articleId, table.createdAt),
+    check(
+      'article_reviews_capability_ck',
+      sql`${table.capabilityKey} IN ('review.positioning', 'review.fact-risk', 'review.readability')`,
+    ),
+    check('article_reviews_summary_nonempty_ck', sql`length(btrim(${table.summary})) > 0`),
+    check('article_reviews_findings_array_ck', sql`jsonb_typeof(${table.findings}) = 'array'`),
+  ],
+);
+
 export const contentFiles = pgTable(
   'content_files',
   {
@@ -592,5 +716,8 @@ export type ProjectAccountRecord = typeof projectAccounts.$inferSelect;
 export type TopicRecord = typeof topics.$inferSelect;
 export type MaterialRecord = typeof materials.$inferSelect;
 export type OutlineRecord = typeof outlines.$inferSelect;
+export type ArticleRecord = typeof articles.$inferSelect;
+export type ArticleVersionRecord = typeof articleVersions.$inferSelect;
+export type ArticleReviewRecord = typeof articleReviews.$inferSelect;
 export type ContentFileRecord = typeof contentFiles.$inferSelect;
 export type ContentRelationRecord = typeof contentRelations.$inferSelect;

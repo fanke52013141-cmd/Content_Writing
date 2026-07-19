@@ -1,4 +1,5 @@
 export * from './account.js';
+export * from './article.js';
 export * from './errors.js';
 export * from './generation.js';
 export * from './hot-topics.js';
