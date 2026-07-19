@@ -22,6 +22,9 @@ import { ProjectModule } from './modules/projects/project.module.js';
 import type { ProjectRepository } from './modules/projects/project.repository.js';
 import { TopicModule } from './modules/topics/topic.module.js';
 import type { TopicRepository } from './modules/topics/topic.repository.js';
+import { DiscoveryModule } from './modules/discovery/discovery.module.js';
+import type { DiscoveryRepository } from './modules/discovery/discovery.repository.js';
+import type { ExternalSearchProvider, HotTopicProvider } from '@content-writing/contracts';
 
 @Module({})
 export class AppModule {
@@ -37,6 +40,9 @@ export class AppModule {
     storageProvider: StorageProvider,
     documentExtractor: DocumentExtractor,
     webpageExtractor: WebpageExtractor,
+    discoveryRepository: DiscoveryRepository,
+    hotTopicProvider: HotTopicProvider,
+    searchProvider: ExternalSearchProvider,
   ): DynamicModule {
     const identityModule = IdentityModule.register(localUserRepository);
     return {
@@ -55,6 +61,13 @@ export class AppModule {
         ProjectModule.register(projectRepository, identityModule),
         TopicModule.register(topicRepository, identityModule),
         OutlineModule.register(outlineRepository, identityModule),
+        DiscoveryModule.register(
+          discoveryRepository,
+          hotTopicProvider,
+          searchProvider,
+          topicRepository,
+          identityModule,
+        ),
       ],
       controllers: [HealthController],
     };

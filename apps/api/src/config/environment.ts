@@ -7,6 +7,8 @@ const environmentSchema = z.object({
   APP_VERSION: z.string().min(1).default('0.1.0'),
   DATABASE_URL: z.url().optional(),
   STORAGE_ROOT: z.string().min(1).default('data/storage'),
+  HOT_TOPIC_PROVIDER_URL: z.url().default('http://dailyhot-api:6688'),
+  SEARCH_PROVIDER_URL: z.url().default('http://searxng:8080'),
 });
 
 export interface AppEnvironment {
@@ -16,6 +18,8 @@ export interface AppEnvironment {
   version: string;
   databaseUrl?: string;
   storageRoot: string;
+  hotTopicProviderUrl: string;
+  searchProviderUrl: string;
 }
 
 export function loadEnvironment(source: NodeJS.ProcessEnv = process.env): AppEnvironment {
@@ -27,6 +31,8 @@ export function loadEnvironment(source: NodeJS.ProcessEnv = process.env): AppEnv
     port: parsed.API_PORT,
     version: parsed.APP_VERSION,
     storageRoot: parsed.STORAGE_ROOT,
+    hotTopicProviderUrl: parsed.HOT_TOPIC_PROVIDER_URL,
+    searchProviderUrl: parsed.SEARCH_PROVIDER_URL,
   };
   if (parsed.DATABASE_URL) environment.databaseUrl = parsed.DATABASE_URL;
   return environment;

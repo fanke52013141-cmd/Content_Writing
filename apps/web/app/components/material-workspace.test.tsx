@@ -27,6 +27,7 @@ const topic: Topic = {
   keywords: [],
   source: 'manual',
   sourceGenerationId: null,
+  sourceHotTopicId: null,
   status: 'active',
   projectLinks: [],
   createdAt: timestamp,

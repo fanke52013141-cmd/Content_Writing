@@ -51,6 +51,18 @@ import {
   PostgresArticleRepository,
   type ArticleRepository,
 } from './modules/articles/article.repository.js';
+import {
+  InMemoryDiscoveryRepository,
+  PostgresDiscoveryRepository,
+  type DiscoveryRepository,
+} from './modules/discovery/discovery.repository.js';
+import {
+  DailyHotApiProvider,
+  SearxngSearchProvider,
+  StaticHotTopicProvider,
+  StaticSearchProvider,
+} from './modules/discovery/external.providers.js';
+import type { ExternalSearchProvider, HotTopicProvider } from '@content-writing/contracts';
 
 export interface CreateAppOptions {
   localUserRepository?: LocalUserRepository;
@@ -64,6 +76,9 @@ export interface CreateAppOptions {
   storageProvider?: StorageProvider;
   documentExtractor?: DocumentExtractor;
   webpageExtractor?: WebpageExtractor;
+  discoveryRepository?: DiscoveryRepository;
+  hotTopicProvider?: HotTopicProvider;
+  searchProvider?: ExternalSearchProvider;
 }
 
 function createRuntimeRepositories(): {
@@ -75,11 +90,15 @@ function createRuntimeRepositories(): {
   materialRepository: MaterialRepository;
   outlineRepository: OutlineRepository;
   articleRepository: ArticleRepository;
+  discoveryRepository: DiscoveryRepository;
+  hotTopicProvider: HotTopicProvider;
+  searchProvider: ExternalSearchProvider;
 } {
   const { databaseUrl } = loadEnvironment();
   if (!databaseUrl) {
     throw new Error('DATABASE_URL is required unless a test repository is provided.');
   }
+  const environment = loadEnvironment();
   return {
     localUserRepository: new PostgresLocalUserRepository(databaseUrl),
     generationRepository: new PostgresGenerationRepository(databaseUrl),
@@ -89,6 +108,9 @@ function createRuntimeRepositories(): {
     materialRepository: new PostgresMaterialRepository(databaseUrl),
     outlineRepository: new PostgresOutlineRepository(databaseUrl),
     articleRepository: new PostgresArticleRepository(databaseUrl),
+    discoveryRepository: new PostgresDiscoveryRepository(databaseUrl),
+    hotTopicProvider: new DailyHotApiProvider(environment.hotTopicProviderUrl),
+    searchProvider: new SearxngSearchProvider(environment.searchProviderUrl),
   };
 }
 
@@ -118,6 +140,16 @@ export async function createApp(options: CreateAppOptions = {}): Promise<NestFas
     options.articleRepository ??
     runtimeRepositories?.articleRepository ??
     new InMemoryArticleRepository();
+  const discoveryRepository =
+    options.discoveryRepository ??
+    runtimeRepositories?.discoveryRepository ??
+    new InMemoryDiscoveryRepository();
+  const hotTopicProvider =
+    options.hotTopicProvider ??
+    runtimeRepositories?.hotTopicProvider ??
+    new StaticHotTopicProvider();
+  const searchProvider =
+    options.searchProvider ?? runtimeRepositories?.searchProvider ?? new StaticSearchProvider();
   const environment = loadEnvironment();
   const storageProvider =
     options.storageProvider ?? new LocalFileStorageProvider(environment.storageRoot);
@@ -148,6 +180,9 @@ export async function createApp(options: CreateAppOptions = {}): Promise<NestFas
       storageProvider,
       documentExtractor,
       webpageExtractor,
+      discoveryRepository,
+      hotTopicProvider,
+      searchProvider,
     ),
     new FastifyAdapter({
       bodyLimit: 25 * 1024 * 1024,

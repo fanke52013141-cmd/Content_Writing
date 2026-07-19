@@ -3,6 +3,7 @@ export * from './article-store.js';
 export * from './client.js';
 export * from './generation-command-store.js';
 export * from './generation-trace-store.js';
+export * from './external-discovery-store.js';
 export * from './local-user-store.js';
 export * from './material-store.js';
 export * from './outline-store.js';

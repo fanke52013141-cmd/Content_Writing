@@ -22,6 +22,7 @@ export const topicSchema = z.object({
   keywords: z.array(requiredText(80)).max(20),
   source: topicSourceSchema,
   sourceGenerationId: z.uuid().nullable(),
+  sourceHotTopicId: z.uuid().nullable(),
   status: topicStatusSchema,
   projectLinks: z.array(topicProjectLinkSchema),
   createdAt: z.iso.datetime(),

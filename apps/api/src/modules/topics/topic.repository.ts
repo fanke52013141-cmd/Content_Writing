@@ -1,5 +1,6 @@
 import type {
   CreateTopic,
+  HotTopicToTopic,
   LinkTopicProject,
   Topic,
   TopicProjectLink,
@@ -15,6 +16,12 @@ export type TopicRepositoryMutation =
 
 export interface TopicRepository {
   create(ownerUserId: string, input: CreateTopic): Promise<Topic | null>;
+  createFromHotTopic(
+    ownerUserId: string,
+    hotTopicId: string,
+    title: string,
+    input: HotTopicToTopic,
+  ): Promise<Topic | null>;
   list(ownerUserId: string): Promise<readonly Topic[]>;
   get(ownerUserId: string, topicId: string): Promise<Topic | null>;
   update(
@@ -52,6 +59,7 @@ function topicFromAggregate(record: TopicAggregateRecord): Topic {
     keywords: record.topic.keywords,
     source: record.topic.source,
     sourceGenerationId: record.topic.sourceGenerationId,
+    sourceHotTopicId: record.topic.sourceHotTopicId,
     status: record.object.status,
     projectLinks: [...record.projectLinks],
     createdAt: record.object.createdAt.toISOString(),
@@ -69,6 +77,16 @@ export class PostgresTopicRepository implements TopicRepository {
 
   async create(ownerUserId: string, input: CreateTopic): Promise<Topic | null> {
     const topic = await this.store.create(ownerUserId, input);
+    return topic ? topicFromAggregate(topic) : null;
+  }
+
+  async createFromHotTopic(
+    ownerUserId: string,
+    hotTopicId: string,
+    title: string,
+    input: HotTopicToTopic,
+  ): Promise<Topic | null> {
+    const topic = await this.store.createFromHotTopic(ownerUserId, hotTopicId, title, input);
     return topic ? topicFromAggregate(topic) : null;
   }
 
@@ -140,6 +158,36 @@ export class InMemoryTopicRepository implements TopicRepository {
       keywords: input.keywords,
       source: 'manual',
       sourceGenerationId: null,
+      sourceHotTopicId: null,
+      status: 'active',
+      projectLinks: [],
+      createdAt: now,
+      updatedAt: now,
+      archivedAt: null,
+    };
+    this.topics.set(topic.id, topic);
+    return Promise.resolve(topic);
+  }
+
+  createFromHotTopic(
+    ownerUserId: string,
+    hotTopicId: string,
+    title: string,
+    input: HotTopicToTopic,
+  ): Promise<Topic | null> {
+    const now = new Date().toISOString();
+    const topic: OwnedTopic = {
+      id: crypto.randomUUID(),
+      ownerUserId,
+      accountId: input.accountId ?? null,
+      title,
+      angle: input.angle,
+      targetAudience: input.targetAudience,
+      contentGoal: input.contentGoal,
+      keywords: input.keywords,
+      source: 'hot_topic',
+      sourceGenerationId: null,
+      sourceHotTopicId: hotTopicId,
       status: 'active',
       projectLinks: [],
       createdAt: now,

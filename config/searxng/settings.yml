@@ -1,0 +1,18 @@
+use_default_settings: true
+
+general:
+  debug: false
+  instance_name: Content Writing local search
+
+search:
+  formats:
+    - html
+    - json
+  safe_search: 1
+
+server:
+  bind_address: 0.0.0.0
+  port: 8080
+  image_proxy: false
+  limiter: false
+  public_instance: false

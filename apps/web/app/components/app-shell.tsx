@@ -29,6 +29,7 @@ import { MaterialWorkspace } from './material-workspace';
 import { OutlineWorkspace } from './outline-workspace';
 import { ArticleWorkspace } from './article-workspace';
 import { TopicWorkspace } from './topic-workspace';
+import { DiscoveryWorkspace } from './discovery-workspace';
 
 interface NavigationItem {
   label: string;
@@ -40,7 +41,7 @@ const navigation: readonly NavigationItem[] = [
   { label: '创作首页', icon: LayoutDashboard, href: '/' },
   { label: '账号定位', icon: CircleUserRound, href: '/accounts' },
   { label: '创作项目', icon: FolderKanban, href: '/projects' },
-  { label: '热点中心', icon: Flame, href: '#' },
+  { label: '热点中心', icon: Flame, href: '/discovery' },
   { label: '选题库', icon: Lightbulb, href: '/topics' },
   { label: '素材库', icon: FolderOpen, href: '/materials' },
   { label: '文章框架', icon: FileText, href: '/outlines' },
@@ -58,7 +59,15 @@ const workflows = [
 export function AppShell({
   surface = 'home',
 }: {
-  surface?: 'home' | 'accounts' | 'projects' | 'topics' | 'materials' | 'outlines' | 'articles';
+  surface?:
+    | 'home'
+    | 'accounts'
+    | 'projects'
+    | 'discovery'
+    | 'topics'
+    | 'materials'
+    | 'outlines'
+    | 'articles';
 }) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -91,6 +100,7 @@ export function AppShell({
               (surface === 'home' && label === '创作首页') ||
               (surface === 'accounts' && label === '账号定位') ||
               (surface === 'projects' && label === '创作项目') ||
+              (surface === 'discovery' && label === '热点中心') ||
               (surface === 'topics' && label === '选题库') ||
               (surface === 'materials' && label === '素材库') ||
               (surface === 'outlines' && label === '文章框架') ||
@@ -130,6 +140,7 @@ export function AppShell({
           className={
             surface === 'accounts' ||
             surface === 'projects' ||
+            surface === 'discovery' ||
             surface === 'topics' ||
             surface === 'materials' ||
             surface === 'outlines' ||
@@ -142,6 +153,8 @@ export function AppShell({
             <AccountWorkspace />
           ) : surface === 'projects' ? (
             <ProjectWorkspace />
+          ) : surface === 'discovery' ? (
+            <DiscoveryWorkspace />
           ) : surface === 'topics' ? (
             <TopicWorkspace />
           ) : surface === 'materials' ? (

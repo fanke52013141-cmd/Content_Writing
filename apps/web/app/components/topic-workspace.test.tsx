@@ -36,6 +36,7 @@ const topic: Topic = {
   keywords: ['选题'],
   source: 'manual',
   sourceGenerationId: null,
+  sourceHotTopicId: null,
   status: 'active',
   projectLinks: [],
   createdAt: timestamp,

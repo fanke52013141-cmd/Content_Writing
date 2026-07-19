@@ -86,6 +86,19 @@ export const termsReviewStatus = pgEnum('terms_review_status', [
   'approved',
   'restricted',
 ]);
+export const externalSourceKind = pgEnum('external_source_kind', ['hot_topic', 'search']);
+export const hotTopicSource = pgEnum('hot_topic_source', [
+  'douyin',
+  'kuaishou',
+  'weibo',
+  'zhihu',
+  'baidu',
+  'toutiao',
+  'thepaper',
+  '36kr',
+  'huxiu',
+  'bilibili',
+]);
 export const contentFileRole = pgEnum('content_file_role', ['original', 'raw_snapshot', 'image']);
 export const outlineSource = pgEnum('outline_source', ['manual', 'ai']);
 export const articleVersionKind = pgEnum('article_version_kind', [
@@ -417,6 +430,7 @@ export const topics = pgTable(
     sourceGenerationId: uuid('source_generation_id').references(() => aiGenerations.id, {
       onDelete: 'restrict',
     }),
+    sourceHotTopicId: uuid('source_hot_topic_id'),
   },
   (table) => [
     uniqueIndex('topics_id_owner_uq').on(table.id, table.ownerUserId),
@@ -432,6 +446,10 @@ export const topics = pgTable(
     }).onDelete('restrict'),
     index('topics_account_idx').on(table.accountId),
     check('topics_title_nonempty_ck', sql`length(btrim(${table.title})) > 0`),
+    check(
+      'topics_source_provenance_ck',
+      sql`(${table.source} = 'manual' AND ${table.sourceGenerationId} IS NULL AND ${table.sourceHotTopicId} IS NULL) OR (${table.source} = 'ai' AND ${table.sourceGenerationId} IS NOT NULL AND ${table.sourceHotTopicId} IS NULL) OR (${table.source} = 'hot_topic' AND ${table.sourceGenerationId} IS NULL AND ${table.sourceHotTopicId} IS NOT NULL)`,
+    ),
   ],
 );
 
@@ -661,6 +679,116 @@ export const contentFiles = pgTable(
   ],
 );
 
+export const externalSourcePolicies = pgTable(
+  'external_source_policies',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    ownerUserId: uuid('owner_user_id')
+      .notNull()
+      .references(() => localUsers.id, { onDelete: 'restrict' }),
+    kind: externalSourceKind('kind').notNull(),
+    sourceKey: text('source_key').notNull(),
+    displayName: text('display_name').notNull(),
+    referenceUrl: text('reference_url').notNull(),
+    enabled: boolean('enabled').default(false).notNull(),
+    termsReviewStatus: termsReviewStatus('terms_review_status').default('pending').notNull(),
+    reviewNote: text('review_note').default('').notNull(),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('external_source_policies_owner_kind_key_uq').on(
+      table.ownerUserId,
+      table.kind,
+      table.sourceKey,
+    ),
+    index('external_source_policies_owner_kind_idx').on(
+      table.ownerUserId,
+      table.kind,
+      table.sourceKey,
+    ),
+    check(
+      'external_source_policies_enabled_review_ck',
+      sql`${table.enabled} = false OR ${table.termsReviewStatus} = 'approved'`,
+    ),
+  ],
+);
+
+export const hotTopicItems = pgTable(
+  'hot_topic_items',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    ownerUserId: uuid('owner_user_id')
+      .notNull()
+      .references(() => localUsers.id, { onDelete: 'restrict' }),
+    source: hotTopicSource('source').notNull(),
+    externalId: text('external_id').notNull(),
+    title: text('title').notNull(),
+    url: text('url').notNull(),
+    description: text('description').default('').notNull(),
+    popularity: integer('popularity'),
+    rank: integer('rank').notNull(),
+    observedAt: timestamp('observed_at', { withTimezone: true }).notNull(),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }).defaultNow().notNull(),
+    providerKey: text('provider_key').notNull(),
+  },
+  (table) => [
+    uniqueIndex('hot_topic_items_owner_source_external_uq').on(
+      table.ownerUserId,
+      table.source,
+      table.externalId,
+    ),
+    index('hot_topic_items_owner_source_fetched_idx').on(
+      table.ownerUserId,
+      table.source,
+      table.fetchedAt,
+    ),
+    check('hot_topic_items_rank_ck', sql`${table.rank} > 0`),
+    check(
+      'hot_topic_items_popularity_ck',
+      sql`${table.popularity} IS NULL OR ${table.popularity} >= 0`,
+    ),
+  ],
+);
+
+export const externalSearchRuns = pgTable(
+  'external_search_runs',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    ownerUserId: uuid('owner_user_id')
+      .notNull()
+      .references(() => localUsers.id, { onDelete: 'restrict' }),
+    query: text('query').notNull(),
+    providerKey: text('provider_key').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('external_search_runs_owner_created_idx').on(table.ownerUserId, table.createdAt),
+    check('external_search_runs_query_nonempty_ck', sql`length(btrim(${table.query})) > 0`),
+  ],
+);
+
+export const externalSearchResults = pgTable(
+  'external_search_results',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    runId: uuid('run_id')
+      .notNull()
+      .references(() => externalSearchRuns.id, { onDelete: 'cascade' }),
+    rank: integer('rank').notNull(),
+    title: text('title').notNull(),
+    url: text('url').notNull(),
+    snippet: text('snippet').default('').notNull(),
+    domain: text('domain').notNull(),
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex('external_search_results_run_rank_uq').on(table.runId, table.rank),
+    check('external_search_results_rank_ck', sql`${table.rank} > 0`),
+  ],
+);
+
 export const contentRelations = pgTable(
   'content_relations',
   {
@@ -720,4 +848,8 @@ export type ArticleRecord = typeof articles.$inferSelect;
 export type ArticleVersionRecord = typeof articleVersions.$inferSelect;
 export type ArticleReviewRecord = typeof articleReviews.$inferSelect;
 export type ContentFileRecord = typeof contentFiles.$inferSelect;
+export type ExternalSourcePolicyRecord = typeof externalSourcePolicies.$inferSelect;
+export type HotTopicItemRecord = typeof hotTopicItems.$inferSelect;
+export type ExternalSearchRunRecord = typeof externalSearchRuns.$inferSelect;
+export type ExternalSearchResultRecord = typeof externalSearchResults.$inferSelect;
 export type ContentRelationRecord = typeof contentRelations.$inferSelect;

@@ -1,4 +1,9 @@
-import type { CreateTopic, LinkTopicProject, UpdateTopic } from '@content-writing/contracts';
+import type {
+  CreateTopic,
+  HotTopicToTopic,
+  LinkTopicProject,
+  UpdateTopic,
+} from '@content-writing/contracts';
 import { and, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
 
 import { createDatabase } from './client.js';
@@ -7,6 +12,7 @@ import {
   contentObjects,
   contentProjects,
   contentRelations,
+  hotTopicItems,
   topics,
   type ContentObjectRecord,
   type TopicRecord,
@@ -117,6 +123,54 @@ export class TopicStore {
         .values({ id: topicId, ownerUserId, source: 'manual', ...input })
         .returning();
       if (!object || !topic) throw new Error('Topic creation failed.');
+      return { object, topic, projectLinks: [] };
+    });
+  }
+
+  async createFromHotTopic(
+    ownerUserId: string,
+    hotTopicId: string,
+    title: string,
+    input: HotTopicToTopic,
+  ): Promise<TopicAggregateRecord | null> {
+    return this.client.db.transaction(async (transaction) => {
+      const [sourceItem] = await transaction
+        .select({ id: hotTopicItems.id })
+        .from(hotTopicItems)
+        .where(and(eq(hotTopicItems.id, hotTopicId), eq(hotTopicItems.ownerUserId, ownerUserId)))
+        .limit(1);
+      if (!sourceItem) return null;
+      if (input.accountId) {
+        const [account] = await transaction
+          .select({ id: accounts.id })
+          .from(accounts)
+          .where(
+            and(
+              eq(accounts.id, input.accountId),
+              eq(accounts.ownerUserId, ownerUserId),
+              ne(accounts.status, 'archived'),
+            ),
+          )
+          .limit(1);
+        if (!account) return null;
+      }
+      const topicId = crypto.randomUUID();
+      const [object] = await transaction
+        .insert(contentObjects)
+        .values({ id: topicId, ownerUserId, objectType: 'topic' })
+        .returning();
+      const [topic] = await transaction
+        .insert(topics)
+        .values({
+          id: topicId,
+          ownerUserId,
+          ...input,
+          title,
+          source: 'hot_topic',
+          sourceHotTopicId: hotTopicId,
+        })
+        .returning();
+      if (!object || !topic) throw new Error('Hot-topic conversion failed.');
       return { object, topic, projectLinks: [] };
     });
   }

@@ -45,6 +45,41 @@ services:
       - redis_data:/data
     networks: [internal]
 
+  dailyhot-api:
+    image: imsyy/dailyhot-api:v2.0.8@sha256:748fc79d29a422f512018e8a58ef1a0e20306dd6254637933960573fa37b1e5e
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:6688/weibo').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging: *app-logging
+    restart: unless-stopped
+    networks: [internal]
+
+  searxng:
+    image: searxng/searxng:2026.7.18-277d8469c@sha256:800a5e3757df04f59e6bd6c622f15de2edbfa47f5591c5b82d4a8ff3b938a845
+    environment:
+      SEARXNG_BASE_URL: http://127.0.0.1:8080/
+      SEARXNG_SECRET: ${SEARXNG_SECRET}
+    healthcheck:
+      test: [CMD, wget, --spider, --quiet, http://127.0.0.1:8080/]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging: *app-logging
+    restart: unless-stopped
+    volumes:
+      - ./config/searxng/settings.yml:/etc/searxng/settings.yml:ro
+    networks: [internal]
+
   migrate:
     build:
       context: .
