@@ -1,6 +1,11 @@
 'use client';
 
-import type { LocalUser, ModelProviderConfig, Prompt } from '@content-writing/contracts';
+import type {
+  LocalUser,
+  ModelProviderConfig,
+  ModelProviderKind,
+  Prompt,
+} from '@content-writing/contracts';
 import { Check, KeyRound, Plus, Save, WandSparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -21,6 +26,7 @@ export function SettingsWorkspace() {
   const [selectedPromptId, setSelectedPromptId] = useState('');
   const [draftBody, setDraftBody] = useState('');
   const [providerName, setProviderName] = useState('');
+  const [providerKind, setProviderKind] = useState<ModelProviderKind>('openai_compatible');
   const [providerBaseUrl, setProviderBaseUrl] = useState('https://api.openai.com/v1');
   const [providerModel, setProviderModel] = useState('');
   const [providerKey, setProviderKey] = useState('');
@@ -100,7 +106,7 @@ export function SettingsWorkspace() {
         method: 'POST',
         body: JSON.stringify({
           name: providerName,
-          kind: 'openai_compatible',
+          kind: providerKind,
           baseUrl: providerBaseUrl,
           model: providerModel,
           apiKey: providerKey,
@@ -234,6 +240,18 @@ export function SettingsWorkspace() {
                 onChange={(event) => setProviderName(event.target.value)}
                 required
               />
+            </label>
+            <label>
+              类型
+              <select
+                onChange={(event) => setProviderKind(event.target.value as ModelProviderKind)}
+                value={providerKind}
+              >
+                <option value="openai_compatible">OpenAI-compatible</option>
+                <option value="openrouter">OpenRouter</option>
+                <option value="newapi">NewAPI</option>
+                <option value="custom">其他兼容中转</option>
+              </select>
             </label>
             <label>
               Base URL
