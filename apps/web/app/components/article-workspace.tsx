@@ -4,15 +4,26 @@ import {
   Archive,
   BookOpenText,
   Check,
+  Clipboard,
+  Download,
+  Eye,
   FilePenLine,
+  ImagePlus,
   Plus,
   RotateCcw,
   Save,
   ShieldCheck,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import type { FormEvent } from 'react';
-import type { Article, ReviewCapabilityKey, ReviewVerdict } from '@content-writing/contracts';
+import type { ChangeEvent, FormEvent } from 'react';
+import type {
+  Article,
+  ArticleExport,
+  ArticleFormatPreview,
+  ArticleImage,
+  ReviewCapabilityKey,
+  ReviewVerdict,
+} from '@content-writing/contracts';
 
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:3100/api/v1';
 const capabilityLabels: Record<ReviewCapabilityKey, string> = {
@@ -37,6 +48,10 @@ export function ArticleWorkspace() {
   const [verdict, setVerdict] = useState<ReviewVerdict>('needs_revision');
   const [reviewSummary, setReviewSummary] = useState('');
   const [status, setStatus] = useState('');
+  const [images, setImages] = useState<readonly ArticleImage[]>([]);
+  const [preview, setPreview] = useState<ArticleFormatPreview | null>(null);
+  const [exports, setExports] = useState<readonly ArticleExport[]>([]);
+  const [theme, setTheme] = useState<'minimal' | 'classic_wechat'>('minimal');
   const selected = useMemo(
     () => articles.find((article) => article.id === selectedId) ?? null,
     [articles, selectedId],
@@ -70,6 +85,73 @@ export function ArticleWorkspace() {
     setBody('');
     setCandidateTitle('');
     setCandidateBody('');
+    setImages([]);
+    setPreview(null);
+    setExports([]);
+  }
+
+  async function uploadImage(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!selected || !file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(`${apiBase}/articles/${selected.id}/images`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!response.ok) {
+      setStatus('图片上传失败');
+      return;
+    }
+    const image = (await response.json()) as ArticleImage;
+    setImages((current) => [image, ...current]);
+    setStatus(`图片已保存，占位符：${image.placeholder}`);
+    event.target.value = '';
+  }
+
+  async function renderPreview() {
+    if (!selected) return;
+    const response = await fetch(`${apiBase}/articles/${selected.id}/format-preview`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ theme }),
+    });
+    if (!response.ok) {
+      setStatus('排版预览失败');
+      return;
+    }
+    setPreview((await response.json()) as ArticleFormatPreview);
+    setStatus('排版预览已生成');
+  }
+
+  async function copyFormatted() {
+    if (!preview) return;
+    await navigator.clipboard?.writeText(preview.copyText);
+    setStatus('已复制正文和图片占位符，请在公众号编辑器手动上传图片');
+  }
+
+  async function createExport(format: 'markdown' | 'html') {
+    if (!selected) return;
+    const response = await fetch(`${apiBase}/articles/${selected.id}/exports`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ theme, format }),
+    });
+    if (!response.ok) {
+      setStatus('导出失败');
+      return;
+    }
+    const record = (await response.json()) as ArticleExport;
+    setExports((current) => [record, ...current]);
+    const blob = new Blob([record.content], {
+      type: format === 'markdown' ? 'text/markdown' : 'text/html',
+    });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = record.filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    setStatus(`已导出 ${format.toUpperCase()} 并写入本地历史`);
   }
 
   async function create(event: FormEvent<HTMLFormElement>) {
@@ -257,6 +339,87 @@ export function ArticleWorkspace() {
               <h3>{selected.currentVersion.title}</h3>
               <p>{selected.currentVersion.body}</p>
             </div>
+            <section className="article-formatting" aria-label="排版预览与图片">
+              <div className="section-heading">
+                <div>
+                  <span className="eyebrow">公众号交付</span>
+                  <h3>排版预览与图片占位</h3>
+                </div>
+                <Eye size={18} />
+              </div>
+              <div className="article-format-toolbar">
+                <label>
+                  主题
+                  <select
+                    value={theme}
+                    onChange={(event) => setTheme(event.target.value as typeof theme)}
+                  >
+                    <option value="minimal">极简</option>
+                    <option value="classic_wechat">经典公众号</option>
+                  </select>
+                </label>
+                <label className="image-upload-button">
+                  <ImagePlus size={15} /> 上传图片
+                  <input
+                    accept="image/png,image/jpeg,image/gif,image/webp"
+                    onChange={(event) => void uploadImage(event)}
+                    type="file"
+                  />
+                </label>
+                <button
+                  className="secondary-button"
+                  onClick={() => void renderPreview()}
+                  type="button"
+                >
+                  <Eye size={15} /> 预览
+                </button>
+                <button
+                  className="secondary-button"
+                  disabled={!preview}
+                  onClick={() => void copyFormatted()}
+                  type="button"
+                >
+                  <Clipboard size={15} /> 复制公众号
+                </button>
+                <button
+                  className="secondary-button"
+                  disabled={!selected}
+                  onClick={() => void createExport('markdown')}
+                  type="button"
+                >
+                  <Download size={15} /> Markdown
+                </button>
+                <button
+                  className="secondary-button"
+                  disabled={!selected}
+                  onClick={() => void createExport('html')}
+                  type="button"
+                >
+                  <Download size={15} /> HTML
+                </button>
+              </div>
+              {images.length > 0 && (
+                <ul className="article-image-list">
+                  {images.map((image) => (
+                    <li key={image.id}>
+                      <span>{image.originalFilename}</span>
+                      <code>{image.placeholder}</code>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {preview && (
+                <div
+                  className="article-preview"
+                  dangerouslySetInnerHTML={{ __html: preview.html }}
+                />
+              )}
+              {exports.length > 0 && (
+                <small className="article-export-history">
+                  本地导出历史：{exports.length} 条，最近为 {exports[0]?.filename}
+                </small>
+              )}
+            </section>
             <form className="article-candidate" onSubmit={(event) => void createCandidate(event)}>
               <div className="section-heading">
                 <div>

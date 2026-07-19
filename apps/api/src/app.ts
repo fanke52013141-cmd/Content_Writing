@@ -63,6 +63,16 @@ import {
   StaticSearchProvider,
 } from './modules/discovery/external.providers.js';
 import type { ExternalSearchProvider, HotTopicProvider } from '@content-writing/contracts';
+import {
+  InMemoryImageAssetRepository,
+  PostgresImageAssetRepository,
+  type ImageAssetRepository,
+} from './modules/formatting/image.repository.js';
+import {
+  InMemoryArticleExportRepository,
+  PostgresArticleExportRepository,
+  type ArticleExportRepository,
+} from './modules/formatting/export.repository.js';
 
 export interface CreateAppOptions {
   localUserRepository?: LocalUserRepository;
@@ -79,6 +89,8 @@ export interface CreateAppOptions {
   discoveryRepository?: DiscoveryRepository;
   hotTopicProvider?: HotTopicProvider;
   searchProvider?: ExternalSearchProvider;
+  imageRepository?: ImageAssetRepository;
+  exportRepository?: ArticleExportRepository;
 }
 
 function createRuntimeRepositories(): {
@@ -93,6 +105,8 @@ function createRuntimeRepositories(): {
   discoveryRepository: DiscoveryRepository;
   hotTopicProvider: HotTopicProvider;
   searchProvider: ExternalSearchProvider;
+  imageRepository: ImageAssetRepository;
+  exportRepository: ArticleExportRepository;
 } {
   const { databaseUrl } = loadEnvironment();
   if (!databaseUrl) {
@@ -111,6 +125,8 @@ function createRuntimeRepositories(): {
     discoveryRepository: new PostgresDiscoveryRepository(databaseUrl),
     hotTopicProvider: new DailyHotApiProvider(environment.hotTopicProviderUrl),
     searchProvider: new SearxngSearchProvider(environment.searchProviderUrl),
+    imageRepository: new PostgresImageAssetRepository(databaseUrl),
+    exportRepository: new PostgresArticleExportRepository(databaseUrl),
   };
 }
 
@@ -150,6 +166,14 @@ export async function createApp(options: CreateAppOptions = {}): Promise<NestFas
     new StaticHotTopicProvider();
   const searchProvider =
     options.searchProvider ?? runtimeRepositories?.searchProvider ?? new StaticSearchProvider();
+  const imageRepository =
+    options.imageRepository ??
+    runtimeRepositories?.imageRepository ??
+    new InMemoryImageAssetRepository();
+  const exportRepository =
+    options.exportRepository ??
+    runtimeRepositories?.exportRepository ??
+    new InMemoryArticleExportRepository();
   const environment = loadEnvironment();
   const storageProvider =
     options.storageProvider ?? new LocalFileStorageProvider(environment.storageRoot);
@@ -183,6 +207,8 @@ export async function createApp(options: CreateAppOptions = {}): Promise<NestFas
       discoveryRepository,
       hotTopicProvider,
       searchProvider,
+      imageRepository,
+      exportRepository,
     ),
     new FastifyAdapter({
       bodyLimit: 25 * 1024 * 1024,

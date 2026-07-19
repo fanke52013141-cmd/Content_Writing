@@ -111,6 +111,8 @@ export const articleVersionStatus = pgEnum('article_version_status', [
   'candidate',
   'superseded',
 ]);
+export const articleFormatTheme = pgEnum('article_format_theme', ['minimal', 'classic_wechat']);
+export const articleExportFormat = pgEnum('article_export_format', ['markdown', 'html']);
 export const reviewVerdict = pgEnum('review_verdict', ['pass', 'needs_revision', 'blocked']);
 
 export const localUsers = pgTable(
@@ -645,6 +647,39 @@ export const articleReviews = pgTable(
   ],
 );
 
+export const articleExports = pgTable(
+  'article_exports',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    ownerUserId: uuid('owner_user_id')
+      .notNull()
+      .references(() => localUsers.id, { onDelete: 'restrict' }),
+    articleId: uuid('article_id').notNull(),
+    versionId: uuid('version_id').notNull(),
+    theme: articleFormatTheme('theme').notNull(),
+    format: articleExportFormat('format').notNull(),
+    filename: text('filename').notNull(),
+    content: text('content').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.articleId, table.ownerUserId],
+      foreignColumns: [articles.id, articles.ownerUserId],
+      name: 'article_exports_article_fk',
+    }).onDelete('restrict'),
+    foreignKey({
+      columns: [table.versionId, table.ownerUserId],
+      foreignColumns: [articleVersions.id, articleVersions.ownerUserId],
+      name: 'article_exports_version_fk',
+    }).onDelete('restrict'),
+    index('article_exports_owner_created_idx').on(table.ownerUserId, table.createdAt),
+    index('article_exports_article_created_idx').on(table.articleId, table.createdAt),
+    check('article_exports_content_nonempty_ck', sql`length(${table.content}) > 0`),
+    check('article_exports_filename_nonempty_ck', sql`length(btrim(${table.filename})) > 0`),
+  ],
+);
+
 export const contentFiles = pgTable(
   'content_files',
   {
@@ -847,6 +882,7 @@ export type OutlineRecord = typeof outlines.$inferSelect;
 export type ArticleRecord = typeof articles.$inferSelect;
 export type ArticleVersionRecord = typeof articleVersions.$inferSelect;
 export type ArticleReviewRecord = typeof articleReviews.$inferSelect;
+export type ArticleExportRecord = typeof articleExports.$inferSelect;
 export type ContentFileRecord = typeof contentFiles.$inferSelect;
 export type ExternalSourcePolicyRecord = typeof externalSourcePolicies.$inferSelect;
 export type HotTopicItemRecord = typeof hotTopicItems.$inferSelect;

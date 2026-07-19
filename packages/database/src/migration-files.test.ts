@@ -50,6 +50,7 @@ describe('migration file loader', () => {
       '0007_outlines.sql',
       '0008_articles_reviews.sql',
       '0009_external_discovery.sql',
+      '0010_formatting_exports.sql',
     ]);
   });
 });

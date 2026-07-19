@@ -25,6 +25,9 @@ import type { TopicRepository } from './modules/topics/topic.repository.js';
 import { DiscoveryModule } from './modules/discovery/discovery.module.js';
 import type { DiscoveryRepository } from './modules/discovery/discovery.repository.js';
 import type { ExternalSearchProvider, HotTopicProvider } from '@content-writing/contracts';
+import { FormattingModule } from './modules/formatting/formatting.module.js';
+import type { ImageAssetRepository } from './modules/formatting/image.repository.js';
+import type { ArticleExportRepository } from './modules/formatting/export.repository.js';
 
 @Module({})
 export class AppModule {
@@ -43,6 +46,8 @@ export class AppModule {
     discoveryRepository: DiscoveryRepository,
     hotTopicProvider: HotTopicProvider,
     searchProvider: ExternalSearchProvider,
+    imageRepository: ImageAssetRepository,
+    exportRepository: ArticleExportRepository,
   ): DynamicModule {
     const identityModule = IdentityModule.register(localUserRepository);
     return {
@@ -66,6 +71,13 @@ export class AppModule {
           hotTopicProvider,
           searchProvider,
           topicRepository,
+          identityModule,
+        ),
+        FormattingModule.register(
+          articleRepository,
+          imageRepository,
+          exportRepository,
+          storageProvider,
           identityModule,
         ),
       ],
