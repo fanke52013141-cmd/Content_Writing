@@ -4,6 +4,7 @@ x-app-environment: &app-environment
   NODE_ENV: production
   DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
   REDIS_URL: redis://redis:6379/0
+  MODEL_ENCRYPTION_KEY: ${MODEL_ENCRYPTION_KEY}
 
 x-app-logging: &app-logging
   driver: json-file
