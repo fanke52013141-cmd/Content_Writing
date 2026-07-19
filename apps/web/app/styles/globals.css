@@ -84,6 +84,157 @@
   }
 }
 
+.article-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.3fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.article-list,
+.article-editor {
+  background: var(--surface, #fff);
+  border: 1px solid var(--line, #e7e2d9);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.article-list {
+  display: grid;
+  gap: 10px;
+}
+
+.article-item {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 6px;
+  padding: 12px;
+  color: inherit;
+  cursor: pointer;
+}
+
+.article-item:hover,
+.article-item--active {
+  border-color: var(--accent, #5c6f64);
+  background: #f4f6f2;
+}
+
+.article-item small,
+.article-editor label small,
+.article-version small {
+  color: var(--muted, #78756e);
+}
+
+.article-editor {
+  display: grid;
+  gap: 16px;
+}
+
+.article-editor label,
+.article-review label,
+.article-candidate label {
+  display: grid;
+  gap: 7px;
+  font-weight: 650;
+}
+
+.article-editor input,
+.article-editor textarea,
+.article-editor select {
+  width: 100%;
+  border: 1px solid var(--line, #d8d4cc);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font: inherit;
+  color: inherit;
+  background: #fff;
+}
+
+.article-editor textarea {
+  resize: vertical;
+  line-height: 1.65;
+}
+
+.article-current,
+.article-candidate,
+.article-review {
+  border-top: 1px solid var(--neutral-200);
+  padding-top: 16px;
+}
+
+.article-current p {
+  white-space: pre-wrap;
+  line-height: 1.8;
+  margin: 0;
+}
+
+.article-current h3,
+.article-candidate h3,
+.article-review h3 {
+  margin: 0;
+}
+
+.article-version-meta,
+.article-version {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.article-version-meta {
+  color: var(--neutral-500);
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+
+.article-versions,
+.article-review {
+  display: grid;
+  gap: 10px;
+}
+
+.article-version {
+  border: 1px solid var(--neutral-200);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.article-version > div {
+  display: grid;
+  gap: 2px;
+}
+
+.article-review-list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.article-review-list li {
+  display: grid;
+  gap: 2px;
+  border-left: 3px solid var(--primary-500);
+  padding: 7px 10px;
+  background: var(--neutral-50);
+}
+
+.article-review-list span {
+  color: var(--neutral-600);
+  font-size: 12px;
+}
+
+@media (max-width: 760px) {
+  .article-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 html,
 body {
   min-height: 100%;
