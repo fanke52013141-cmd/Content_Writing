@@ -64,6 +64,7 @@ describe('article formatting and local image API', () => {
     expect(uploaded.statusCode).toBe(201);
     const image = uploaded.json<ArticleImage>();
     expect(image.placeholder).toBe(`{{image:${image.id}}}`);
+    expect(image).toMatchObject({ licenseStatus: 'unknown', publishable: false });
 
     const rejected = await app.inject({
       method: 'POST',

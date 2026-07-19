@@ -40,6 +40,10 @@ describe('ArticleWorkspace', () => {
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) })
       .mockResolvedValueOnce({
         ok: true,
+        json: () => Promise.resolve([]),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
         json: () => Promise.resolve({ ...article, versions: [article.currentVersion] }),
       });
     vi.stubGlobal('fetch', fetchMock);
@@ -48,7 +52,7 @@ describe('ArticleWorkspace', () => {
     fireEvent.change(screen.getByLabelText('正文'), { target: { value: '正文' } });
     fireEvent.submit(screen.getByRole('button', { name: '保存为 Current' }));
     await waitFor(() => expect(screen.getByText('文章已创建')).toBeInTheDocument());
-    expect(fetchMock.mock.calls[1]?.[0]).toMatch(/\/articles$/u);
+    expect(fetchMock.mock.calls[2]?.[0]).toMatch(/\/articles$/u);
   });
 
   it('sends review input for the selected Current version', async () => {
@@ -71,6 +75,7 @@ describe('ArticleWorkspace', () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([loaded]) })
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) })
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(reviewed) });
     vi.stubGlobal('fetch', fetchMock);
     render(<ArticleWorkspace />);
@@ -79,7 +84,7 @@ describe('ArticleWorkspace', () => {
     fireEvent.change(screen.getByLabelText('摘要'), { target: { value: '结构清晰' } });
     fireEvent.submit(screen.getByRole('button', { name: /保存评审/u }));
     await waitFor(() => expect(screen.getByText('评审已记录')).toBeInTheDocument());
-    const request = fetchMock.mock.calls[1]?.[1] as RequestInit | undefined;
+    const request = fetchMock.mock.calls[2]?.[1] as RequestInit | undefined;
     expect(JSON.parse(request?.body as string)).toMatchObject({
       versionId: loaded.currentVersionId,
     });

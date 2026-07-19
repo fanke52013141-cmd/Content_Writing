@@ -100,7 +100,7 @@ export function SettingsWorkspace() {
           baseUrl: providerBaseUrl,
           model: providerModel,
           apiKey: providerKey,
-          enabled: false,
+          enabled: true,
         }),
       });
       setProviders((items) => [created, ...items]);

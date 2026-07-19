@@ -122,6 +122,8 @@ export function imageFromFile(record: ContentFileRecord, articleId: string): Art
     originalFilename: record.originalFilename || 'image',
     mimeType: record.mimeType as ArticleImage['mimeType'],
     byteSize: record.byteSize,
+    licenseStatus: 'unknown',
+    publishable: false,
     placeholder: `{{image:${record.id}}}`,
     downloadPath: `/api/v1/articles/${articleId}/images/${record.id}/content`,
     createdAt: record.createdAt.toISOString(),

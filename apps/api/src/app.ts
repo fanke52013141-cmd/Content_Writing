@@ -83,6 +83,11 @@ import {
   PostgresModelProviderRepository,
   type ModelProviderRepository,
 } from './modules/settings/model-provider.repository.js';
+import {
+  InMemoryDeletionRepository,
+  PostgresDeletionRepository,
+  type DeletionRepository,
+} from './modules/deletions/deletion.repository.js';
 
 export interface CreateAppOptions {
   localUserRepository?: LocalUserRepository;
@@ -103,6 +108,7 @@ export interface CreateAppOptions {
   exportRepository?: ArticleExportRepository;
   promptRepository?: PromptRepository;
   modelProviderRepository?: ModelProviderRepository;
+  deletionRepository?: DeletionRepository;
 }
 
 function createRuntimeRepositories(): {
@@ -121,6 +127,7 @@ function createRuntimeRepositories(): {
   exportRepository: ArticleExportRepository;
   promptRepository: PromptRepository;
   modelProviderRepository: ModelProviderRepository;
+  deletionRepository: DeletionRepository;
   modelEncryptionKey: string;
 } {
   const { databaseUrl } = loadEnvironment();
@@ -144,6 +151,7 @@ function createRuntimeRepositories(): {
     exportRepository: new PostgresArticleExportRepository(databaseUrl),
     promptRepository: new PostgresPromptRepository(databaseUrl),
     modelProviderRepository: new PostgresModelProviderRepository(databaseUrl),
+    deletionRepository: new PostgresDeletionRepository(databaseUrl),
     modelEncryptionKey: environment.modelEncryptionKey,
   };
 }
@@ -200,6 +208,10 @@ export async function createApp(options: CreateAppOptions = {}): Promise<NestFas
     options.modelProviderRepository ??
     runtimeRepositories?.modelProviderRepository ??
     new InMemoryModelProviderRepository();
+  const deletionRepository =
+    options.deletionRepository ??
+    runtimeRepositories?.deletionRepository ??
+    new InMemoryDeletionRepository();
   const environment = loadEnvironment();
   const storageProvider =
     options.storageProvider ?? new LocalFileStorageProvider(environment.storageRoot);
@@ -237,6 +249,7 @@ export async function createApp(options: CreateAppOptions = {}): Promise<NestFas
       exportRepository,
       promptRepository,
       modelProviderRepository,
+      deletionRepository,
       environment.modelEncryptionKey,
     ),
     new FastifyAdapter({

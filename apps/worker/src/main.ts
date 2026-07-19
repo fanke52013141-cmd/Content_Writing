@@ -1,6 +1,10 @@
 import { createServer } from 'node:http';
 
-import { MockTextModelProvider, ProviderRegistry } from '@content-writing/ai-engine';
+import {
+  MockTextModelProvider,
+  OpenAiCompatibleTextModelProvider,
+  ProviderRegistry,
+} from '@content-writing/ai-engine';
 import {
   AI_GENERATION_QUEUE,
   generationJobSchema,
@@ -17,8 +21,10 @@ import {
   PostgresOutboxRepository,
 } from './outbox-dispatcher.js';
 import { processGenerationJob } from './process-generation-job.js';
+import { decryptModelKey } from './model-crypto.js';
+import { LocalUserStore, ModelProviderStore } from '@content-writing/database';
 
-function bootstrap(): void {
+async function bootstrap(): Promise<void> {
   const environment = loadWorkerEnvironment();
   const connection = new Redis(environment.REDIS_URL, {
     enableReadyCheck: true,
@@ -27,6 +33,23 @@ function bootstrap(): void {
   const writer = new PostgresGenerationTraceWriter(environment.DATABASE_URL);
   const registry = new ProviderRegistry();
   registry.register(new MockTextModelProvider());
+  const localUserStore = new LocalUserStore(environment.DATABASE_URL);
+  const providerStore = new ModelProviderStore(environment.DATABASE_URL);
+  const localUser = await localUserStore.get();
+  const configuredProviders = await providerStore.list(localUser.id);
+  for (const configured of configuredProviders.filter((item) => item.enabled)) {
+    const apiKey = configured.apiKeyCiphertext
+      ? decryptModelKey(configured.apiKeyCiphertext, environment.MODEL_ENCRYPTION_KEY)
+      : null;
+    registry.register(
+      new OpenAiCompatibleTextModelProvider({
+        key: configured.id,
+        baseUrl: configured.baseUrl,
+        apiKey,
+        defaultModel: configured.model,
+      }),
+    );
+  }
   const queue = new Queue<GenerationJob>(AI_GENERATION_QUEUE, { connection });
   const outboxRepository = new PostgresOutboxRepository(environment.DATABASE_URL);
   const dispatcher = new OutboxDispatcher(
@@ -61,10 +84,15 @@ function bootstrap(): void {
     await connection.quit();
     await outboxRepository.close();
     await writer.close();
+    await providerStore.close();
+    await localUserStore.close();
   };
 
   process.once('SIGINT', () => void shutdown());
   process.once('SIGTERM', () => void shutdown());
 }
 
-bootstrap();
+void bootstrap().catch((error: unknown) => {
+  console.error(error);
+  process.exitCode = 1;
+});

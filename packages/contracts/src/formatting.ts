@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const articleFormatThemeSchema = z.enum(['minimal', 'classic_wechat']);
 export const articleExportFormatSchema = z.enum(['markdown', 'html']);
 export const imageMimeTypeSchema = z.enum(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
+export const imageLicenseStatusSchema = z.enum(['unknown']);
 
 export const articleImageSchema = z.object({
   id: z.uuid(),
@@ -10,6 +11,8 @@ export const articleImageSchema = z.object({
   originalFilename: z.string().min(1).max(255),
   mimeType: imageMimeTypeSchema,
   byteSize: z.number().int().nonnegative(),
+  licenseStatus: imageLicenseStatusSchema.default('unknown'),
+  publishable: z.literal(false).default(false),
   placeholder: z.string().regex(/^\{\{image:[0-9a-f-]{36}\}\}$/u),
   downloadPath: z.string().startsWith('/api/v1/'),
   createdAt: z.iso.datetime(),
@@ -55,6 +58,7 @@ export const articleExportSchema = z.object({
 export type ArticleFormatTheme = z.infer<typeof articleFormatThemeSchema>;
 export type ArticleExportFormat = z.infer<typeof articleExportFormatSchema>;
 export type ArticleImage = z.infer<typeof articleImageSchema>;
+export type ImageLicenseStatus = z.infer<typeof imageLicenseStatusSchema>;
 export type CreateFormatPreview = z.infer<typeof createFormatPreviewSchema>;
 export type ArticleFormatPreview = z.infer<typeof articleFormatPreviewSchema>;
 export type CreateArticleExport = z.infer<typeof createArticleExportSchema>;

@@ -31,6 +31,8 @@ import type { ArticleExportRepository } from './modules/formatting/export.reposi
 import { SettingsModule } from './modules/settings/settings.module.js';
 import type { PromptRepository } from './modules/settings/prompt.repository.js';
 import type { ModelProviderRepository } from './modules/settings/model-provider.repository.js';
+import { DeletionModule } from './modules/deletions/deletion.module.js';
+import type { DeletionRepository } from './modules/deletions/deletion.repository.js';
 
 @Module({})
 export class AppModule {
@@ -53,6 +55,7 @@ export class AppModule {
     exportRepository: ArticleExportRepository,
     promptRepository: PromptRepository,
     modelProviderRepository: ModelProviderRepository,
+    deletionRepository: DeletionRepository,
     modelEncryptionKey: string,
   ): DynamicModule {
     const identityModule = IdentityModule.register(localUserRepository);
@@ -92,6 +95,7 @@ export class AppModule {
           identityModule,
           modelEncryptionKey,
         ),
+        DeletionModule.register(deletionRepository, identityModule, storageProvider),
       ],
       controllers: [HealthController],
     };

@@ -13,6 +13,8 @@ import {
   RotateCcw,
   Save,
   ShieldCheck,
+  Sparkles,
+  Trash2,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
@@ -21,6 +23,8 @@ import type {
   ArticleExport,
   ArticleFormatPreview,
   ArticleImage,
+  Generation,
+  ModelProviderConfig,
   ReviewCapabilityKey,
   ReviewVerdict,
 } from '@content-writing/contracts';
@@ -51,6 +55,9 @@ export function ArticleWorkspace() {
   const [images, setImages] = useState<readonly ArticleImage[]>([]);
   const [preview, setPreview] = useState<ArticleFormatPreview | null>(null);
   const [exports, setExports] = useState<readonly ArticleExport[]>([]);
+  const [providers, setProviders] = useState<readonly ModelProviderConfig[]>([]);
+  const [providerId, setProviderId] = useState('mock');
+  const [deleteMode, setDeleteMode] = useState<'archive' | 'soft' | 'permanent'>('soft');
   const [theme, setTheme] = useState<'minimal' | 'classic_wechat'>('minimal');
   const selected = useMemo(
     () => articles.find((article) => article.id === selectedId) ?? null,
@@ -59,9 +66,18 @@ export function ArticleWorkspace() {
 
   async function load() {
     try {
-      const response = await fetch(`${apiBase}/articles`);
-      if (!response.ok) throw new Error('load failed');
-      setArticles((await response.json()) as Article[]);
+      const [articleResponse, providerResponse] = await Promise.all([
+        fetch(`${apiBase}/articles`),
+        fetch(`${apiBase}/model-providers`),
+      ]);
+      if (!articleResponse.ok) throw new Error('load failed');
+      setArticles((await articleResponse.json()) as Article[]);
+      if (providerResponse.ok) {
+        const configured = (await providerResponse.json()) as ModelProviderConfig[];
+        const enabled = configured.filter((item) => item.enabled);
+        setProviders(enabled);
+        setProviderId(enabled[0]?.id ?? 'mock');
+      }
     } catch {
       setStatus('本地服务未连接');
     }
@@ -193,6 +209,63 @@ export function ArticleWorkspace() {
     setStatus('候选版本已保存，Current 未改变');
   }
 
+  async function generateCandidate() {
+    if (!selected) return;
+    const provider = providers.find((item) => item.id === providerId);
+    setStatus('AI 正在生成不可变候选版本…');
+    const generationResponse = await fetch(`${apiBase}/generations`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        capabilityKey: 'article.revise',
+        providerKey: provider?.id ?? 'mock',
+        model: provider?.model ?? 'mock-writer',
+        input: {
+          title: selected.currentVersion.title,
+          body: selected.currentVersion.body,
+          reviews: selected.reviews,
+          instruction: '保留事实边界和未要求修改的内容，只输出改写后的文章正文。',
+        },
+      }),
+    });
+    if (!generationResponse.ok) {
+      setStatus('AI 生成请求失败');
+      return;
+    }
+    const generation = (await generationResponse.json()) as Generation;
+    for (let attempt = 0; attempt < 120; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      const response = await fetch(`${apiBase}/generations/${generation.id}`);
+      if (!response.ok) continue;
+      const current = (await response.json()) as Generation;
+      if (current.status === 'failed') {
+        setStatus(current.errorMessage ?? 'AI 生成失败');
+        return;
+      }
+      if (current.status !== 'succeeded' || !current.outputText) continue;
+      const candidateResponse = await fetch(`${apiBase}/articles/${selected.id}/candidates`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          title: `${selected.title}（AI 改写候选）`,
+          body: current.outputText,
+          kind: 'ai_candidate',
+          sourceGenerationId: current.id,
+        }),
+      });
+      if (!candidateResponse.ok) {
+        setStatus('AI 已完成，但候选版本保存失败');
+        return;
+      }
+      const article = (await candidateResponse.json()) as Article;
+      setArticles((items) => items.map((item) => (item.id === article.id ? article : item)));
+      select(article);
+      setStatus('AI 候选版本已创建，Current 未改变');
+      return;
+    }
+    setStatus('AI 生成超时，请查看生成记录');
+  }
+
   async function accept(versionId: string) {
     if (!selected) return;
     const response = await fetch(
@@ -246,6 +319,22 @@ export function ArticleWorkspace() {
     const article = (await response.json()) as Article;
     setArticles((current) => current.map((item) => (item.id === article.id ? article : item)));
     select(article);
+  }
+
+  async function deleteArticle() {
+    if (!selected) return;
+    if (deleteMode === 'permanent' && !window.confirm('确认彻底删除文章正文、文件和快照吗？'))
+      return;
+    const response = await fetch(`${apiBase}/deletions/article/${selected.id}?mode=${deleteMode}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      setStatus('删除失败');
+      return;
+    }
+    setArticles((current) => current.filter((item) => item.id !== selected.id));
+    reset();
+    setStatus(deleteMode === 'archive' ? '文章已归档，可恢复' : '文章已删除，审计记录已保留');
   }
 
   return (
@@ -330,6 +419,25 @@ export function ArticleWorkspace() {
               >
                 {selected.status === 'active' ? <Archive size={17} /> : <RotateCcw size={17} />}
               </button>
+              <div className="article-delete-actions">
+                <select
+                  aria-label="删除方式"
+                  onChange={(event) => setDeleteMode(event.target.value as typeof deleteMode)}
+                  value={deleteMode}
+                >
+                  <option value="archive">归档</option>
+                  <option value="soft">普通删除</option>
+                  <option value="permanent">彻底删除</option>
+                </select>
+                <button
+                  aria-label="执行删除"
+                  className="icon-button icon-button--danger"
+                  onClick={() => void deleteArticle()}
+                  type="button"
+                >
+                  <Trash2 size={17} />
+                </button>
+              </div>
             </div>
             <div className="article-current">
               <div className="article-version-meta">
@@ -404,6 +512,7 @@ export function ArticleWorkspace() {
                     <li key={image.id}>
                       <span>{image.originalFilename}</span>
                       <code>{image.placeholder}</code>
+                      <small>授权状态：未知，仅可作为本地占位，不直接进入可发布素材</small>
                     </li>
                   ))}
                 </ul>
@@ -449,6 +558,26 @@ export function ArticleWorkspace() {
                 <Save size={16} /> 保存候选
               </button>
             </form>
+            <div className="article-ai-actions">
+              <label>
+                模型
+                <select value={providerId} onChange={(event) => setProviderId(event.target.value)}>
+                  <option value="mock">本地 Mock（验收用）</option>
+                  {providers.map((provider) => (
+                    <option key={provider.id} value={provider.id}>
+                      {provider.name} · {provider.model}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                className="primary-button"
+                onClick={() => void generateCandidate()}
+                type="button"
+              >
+                <Sparkles size={16} /> AI 生成候选
+              </button>
+            </div>
             <div className="article-versions">
               <div className="section-heading">
                 <h3>版本历史</h3>
