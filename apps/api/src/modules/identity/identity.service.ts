@@ -1,4 +1,9 @@
-import type { LocalUser, SetLocalPin, UpdateLocalUser } from '@content-writing/contracts';
+import type {
+  LocalUser,
+  SetLocalPin,
+  UpdateLocalUser,
+  VerifyLocalPin,
+} from '@content-writing/contracts';
 import { Inject, Injectable, type OnModuleDestroy } from '@nestjs/common';
 
 import {
@@ -36,6 +41,12 @@ export class IdentityService implements OnModuleDestroy {
   async enablePin(input: SetLocalPin): Promise<LocalUser> {
     const hash = await this.pinHasher.hash(input.pin);
     return toPublicUser(await this.repository.setPinHash(hash));
+  }
+
+  async verifyPin(input: VerifyLocalPin): Promise<{ verified: boolean }> {
+    const entity = await this.repository.get();
+    if (!entity.pinEnabled || !entity.pinHash) return { verified: false };
+    return { verified: await this.pinHasher.verify(input.pin, entity.pinHash) };
   }
 
   async onModuleDestroy(): Promise<void> {

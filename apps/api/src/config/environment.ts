@@ -9,6 +9,7 @@ const environmentSchema = z.object({
   STORAGE_ROOT: z.string().min(1).default('data/storage'),
   HOT_TOPIC_PROVIDER_URL: z.url().default('http://dailyhot-api:6688'),
   SEARCH_PROVIDER_URL: z.url().default('http://searxng:8080'),
+  MODEL_ENCRYPTION_KEY: z.string().min(16).default('local-development-key-change-me'),
 });
 
 export interface AppEnvironment {
@@ -20,6 +21,7 @@ export interface AppEnvironment {
   storageRoot: string;
   hotTopicProviderUrl: string;
   searchProviderUrl: string;
+  modelEncryptionKey: string;
 }
 
 export function loadEnvironment(source: NodeJS.ProcessEnv = process.env): AppEnvironment {
@@ -33,6 +35,7 @@ export function loadEnvironment(source: NodeJS.ProcessEnv = process.env): AppEnv
     storageRoot: parsed.STORAGE_ROOT,
     hotTopicProviderUrl: parsed.HOT_TOPIC_PROVIDER_URL,
     searchProviderUrl: parsed.SEARCH_PROVIDER_URL,
+    modelEncryptionKey: parsed.MODEL_ENCRYPTION_KEY,
   };
   if (parsed.DATABASE_URL) environment.databaseUrl = parsed.DATABASE_URL;
   return environment;

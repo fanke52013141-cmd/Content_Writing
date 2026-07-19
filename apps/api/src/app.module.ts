@@ -28,6 +28,9 @@ import type { ExternalSearchProvider, HotTopicProvider } from '@content-writing/
 import { FormattingModule } from './modules/formatting/formatting.module.js';
 import type { ImageAssetRepository } from './modules/formatting/image.repository.js';
 import type { ArticleExportRepository } from './modules/formatting/export.repository.js';
+import { SettingsModule } from './modules/settings/settings.module.js';
+import type { PromptRepository } from './modules/settings/prompt.repository.js';
+import type { ModelProviderRepository } from './modules/settings/model-provider.repository.js';
 
 @Module({})
 export class AppModule {
@@ -48,13 +51,16 @@ export class AppModule {
     searchProvider: ExternalSearchProvider,
     imageRepository: ImageAssetRepository,
     exportRepository: ArticleExportRepository,
+    promptRepository: PromptRepository,
+    modelProviderRepository: ModelProviderRepository,
+    modelEncryptionKey: string,
   ): DynamicModule {
     const identityModule = IdentityModule.register(localUserRepository);
     return {
       module: AppModule,
       imports: [
         AccountModule.register(accountRepository, identityModule),
-        ArticleModule.register(articleRepository, identityModule),
+        ArticleModule.register(articleRepository, identityModule, storageProvider),
         GenerationModule.register(generationRepository, identityModule),
         MaterialModule.register(
           materialRepository,
@@ -79,6 +85,12 @@ export class AppModule {
           exportRepository,
           storageProvider,
           identityModule,
+        ),
+        SettingsModule.register(
+          promptRepository,
+          modelProviderRepository,
+          identityModule,
+          modelEncryptionKey,
         ),
       ],
       controllers: [HealthController],

@@ -73,6 +73,16 @@ import {
   PostgresArticleExportRepository,
   type ArticleExportRepository,
 } from './modules/formatting/export.repository.js';
+import {
+  InMemoryPromptRepository,
+  PostgresPromptRepository,
+  type PromptRepository,
+} from './modules/settings/prompt.repository.js';
+import {
+  InMemoryModelProviderRepository,
+  PostgresModelProviderRepository,
+  type ModelProviderRepository,
+} from './modules/settings/model-provider.repository.js';
 
 export interface CreateAppOptions {
   localUserRepository?: LocalUserRepository;
@@ -91,6 +101,8 @@ export interface CreateAppOptions {
   searchProvider?: ExternalSearchProvider;
   imageRepository?: ImageAssetRepository;
   exportRepository?: ArticleExportRepository;
+  promptRepository?: PromptRepository;
+  modelProviderRepository?: ModelProviderRepository;
 }
 
 function createRuntimeRepositories(): {
@@ -107,6 +119,9 @@ function createRuntimeRepositories(): {
   searchProvider: ExternalSearchProvider;
   imageRepository: ImageAssetRepository;
   exportRepository: ArticleExportRepository;
+  promptRepository: PromptRepository;
+  modelProviderRepository: ModelProviderRepository;
+  modelEncryptionKey: string;
 } {
   const { databaseUrl } = loadEnvironment();
   if (!databaseUrl) {
@@ -127,6 +142,9 @@ function createRuntimeRepositories(): {
     searchProvider: new SearxngSearchProvider(environment.searchProviderUrl),
     imageRepository: new PostgresImageAssetRepository(databaseUrl),
     exportRepository: new PostgresArticleExportRepository(databaseUrl),
+    promptRepository: new PostgresPromptRepository(databaseUrl),
+    modelProviderRepository: new PostgresModelProviderRepository(databaseUrl),
+    modelEncryptionKey: environment.modelEncryptionKey,
   };
 }
 
@@ -174,6 +192,14 @@ export async function createApp(options: CreateAppOptions = {}): Promise<NestFas
     options.exportRepository ??
     runtimeRepositories?.exportRepository ??
     new InMemoryArticleExportRepository();
+  const promptRepository =
+    options.promptRepository ??
+    runtimeRepositories?.promptRepository ??
+    new InMemoryPromptRepository();
+  const modelProviderRepository =
+    options.modelProviderRepository ??
+    runtimeRepositories?.modelProviderRepository ??
+    new InMemoryModelProviderRepository();
   const environment = loadEnvironment();
   const storageProvider =
     options.storageProvider ?? new LocalFileStorageProvider(environment.storageRoot);
@@ -209,6 +235,9 @@ export async function createApp(options: CreateAppOptions = {}): Promise<NestFas
       searchProvider,
       imageRepository,
       exportRepository,
+      promptRepository,
+      modelProviderRepository,
+      environment.modelEncryptionKey,
     ),
     new FastifyAdapter({
       bodyLimit: 25 * 1024 * 1024,

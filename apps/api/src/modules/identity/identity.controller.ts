@@ -1,10 +1,11 @@
 import {
   localUserSchema,
   setLocalPinSchema,
+  verifyLocalPinSchema,
   updateLocalUserSchema,
   type LocalUser,
 } from '@content-writing/contracts';
-import { Body, Controller, Get, Patch, Put } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Put } from '@nestjs/common';
 import { ApiBody, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { parseRequest } from '../../common/zod.js';
@@ -46,5 +47,11 @@ export class IdentityController {
   })
   async enablePin(@Body() body: unknown): Promise<LocalUser> {
     return this.identityService.enablePin(parseRequest(setLocalPinSchema, body));
+  }
+
+  @Post('settings/pin/verify')
+  @ApiOperation({ summary: 'Verify the optional local PIN without creating a session' })
+  async verifyPin(@Body() body: unknown): Promise<{ verified: boolean }> {
+    return this.identityService.verifyPin(parseRequest(verifyLocalPinSchema, body));
   }
 }

@@ -51,6 +51,7 @@ describe('migration file loader', () => {
       '0008_articles_reviews.sql',
       '0009_external_discovery.sql',
       '0010_formatting_exports.sql',
+      '0011_prompt_model_config.sql',
     ]);
   });
 });

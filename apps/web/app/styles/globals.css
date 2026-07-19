@@ -679,6 +679,97 @@ a:focus-visible {
   }
 }
 
+.settings-workspace {
+  display: grid;
+  gap: 24px;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+  gap: 18px;
+}
+
+.settings-panel {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  padding: 20px;
+  min-width: 0;
+}
+
+.settings-panel h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-prompt-list,
+.settings-provider-list,
+.settings-versions {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.settings-prompt,
+.settings-provider,
+.settings-version {
+  text-align: left;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 6px;
+  background: transparent;
+  padding: 12px;
+}
+
+.settings-prompt {
+  display: grid;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.settings-prompt--active {
+  border-color: var(--accent, #2563eb);
+  background: color-mix(in srgb, var(--accent, #2563eb) 8%, transparent);
+}
+
+.settings-prompt small,
+.settings-provider small,
+.settings-provider span,
+.settings-version span {
+  color: var(--muted, #6b7280);
+  font-size: 12px;
+}
+
+.settings-editor,
+.settings-provider-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.settings-editor textarea,
+.settings-provider-form input {
+  width: 100%;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 6px;
+  padding: 10px;
+  background: var(--background, #fafafa);
+}
+
+.settings-version {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 960px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .workspace__content {
   margin: 0 auto;
   max-width: 1040px;

@@ -20,6 +20,13 @@ export const outboxStatus = pgEnum('outbox_status', [
   'completed',
   'failed',
 ]);
+export const modelProviderKind = pgEnum('model_provider_kind', [
+  'openai_compatible',
+  'openrouter',
+  'newapi',
+  'custom',
+]);
+export const deletionMode = pgEnum('deletion_mode', ['archive', 'soft', 'permanent']);
 
 export const promptVersionStatus = pgEnum('prompt_version_status', [
   'draft',
@@ -183,6 +190,51 @@ export const prompts = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [index('prompts_owner_capability_idx').on(table.ownerUserId, table.capabilityKey)],
+);
+
+export const modelProviderConfigs = pgTable(
+  'model_provider_configs',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    ownerUserId: uuid('owner_user_id')
+      .notNull()
+      .references(() => localUsers.id, { onDelete: 'restrict' }),
+    name: text('name').notNull(),
+    kind: modelProviderKind('kind').notNull(),
+    baseUrl: text('base_url').notNull(),
+    model: text('model').notNull(),
+    apiKeyCiphertext: text('api_key_ciphertext'),
+    enabled: boolean('enabled').default(false).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('model_provider_configs_owner_enabled_idx').on(
+      table.ownerUserId,
+      table.enabled,
+      table.updatedAt,
+    ),
+    check('model_provider_configs_name_nonempty_ck', sql`length(btrim(${table.name})) > 0`),
+    check('model_provider_configs_model_nonempty_ck', sql`length(btrim(${table.model})) > 0`),
+  ],
+);
+
+export const deletionAudits = pgTable(
+  'deletion_audits',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    ownerUserId: uuid('owner_user_id')
+      .notNull()
+      .references(() => localUsers.id, { onDelete: 'restrict' }),
+    objectId: uuid('object_id').notNull(),
+    objectType: text('object_type').notNull(),
+    mode: deletionMode('mode').notNull(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    index('deletion_audits_owner_occurred_idx').on(table.ownerUserId, table.occurredAt),
+    check('deletion_audits_type_nonempty_ck', sql`length(btrim(${table.objectType})) > 0`),
+  ],
 );
 
 export const promptVersions = pgTable(
@@ -870,6 +922,8 @@ export const contentRelations = pgTable(
 export type LocalUserRecord = typeof localUsers.$inferSelect;
 export type NewOutboxEvent = typeof outboxEvents.$inferInsert;
 export type PromptVersionRecord = typeof promptVersions.$inferSelect;
+export type ModelProviderConfigRecord = typeof modelProviderConfigs.$inferSelect;
+export type DeletionAuditRecord = typeof deletionAudits.$inferSelect;
 export type AiGenerationRecord = typeof aiGenerations.$inferSelect;
 export type AccountRecord = typeof accounts.$inferSelect;
 export type AccountProfileVersionRecord = typeof accountProfileVersions.$inferSelect;

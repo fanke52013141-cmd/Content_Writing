@@ -1,4 +1,4 @@
-import type { Article } from '@content-writing/contracts';
+import type { Article, DeletionAudit } from '@content-writing/contracts';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createApp } from '../../app.js';
@@ -110,5 +110,38 @@ describe('article API', () => {
       status: 'active',
       currentVersionId: candidateVersionId,
     });
+  });
+
+  it('records soft and permanent deletion without exposing content in the audit', async () => {
+    const soft = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/articles/${articleId}?mode=soft`,
+    });
+    expect(soft.statusCode).toBe(200);
+    expect(soft.json<DeletionAudit>()).toMatchObject({
+      objectId: articleId,
+      objectType: 'article',
+      mode: 'soft',
+    });
+    expect(
+      (await app.inject({ method: 'GET', url: `/api/v1/articles/${articleId}` })).statusCode,
+    ).toBe(404);
+
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/articles',
+      payload: { title: '待彻底删除', body: '只保留无内容审计' },
+    });
+    const second = created.json<Article>();
+    const permanent = await app.inject({
+      method: 'DELETE',
+      url: `/api/v1/articles/${second.id}?mode=permanent`,
+    });
+    expect(permanent.statusCode).toBe(200);
+    expect(permanent.json<DeletionAudit>()).toMatchObject({
+      objectId: second.id,
+      mode: 'permanent',
+    });
+    expect(permanent.json()).not.toHaveProperty('body');
   });
 });

@@ -5,8 +5,10 @@ import {
   createReviewSchema,
   updateArticleSchema,
   type Article,
+  deletionAuditSchema,
+  deletionModeSchema,
 } from '@content-writing/contracts';
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 
@@ -86,6 +88,15 @@ export class ArticleController {
         parseRequest(z.uuid(), articleId),
         parseRequest(updateArticleSchema, body),
       ),
+    );
+  }
+
+  @Delete(':articleId')
+  @ApiOperation({ summary: 'Archive, soft-delete or permanently delete an article' })
+  async delete(@Param('articleId') articleId: string, @Query('mode') mode: unknown) {
+    const parsedMode = parseRequest(deletionModeSchema, mode ?? 'soft');
+    return deletionAuditSchema.parse(
+      await this.articleService.delete(parseRequest(z.uuid(), articleId), parsedMode),
     );
   }
 }

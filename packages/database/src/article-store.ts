@@ -9,11 +9,14 @@ import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm';
 import { createDatabase } from './client.js';
 import {
   articleReviews,
+  articleExports,
   articleVersions,
   articles,
+  contentFiles,
   contentObjects,
-  contentProjects,
   contentRelations,
+  deletionAudits,
+  contentProjects,
   outlines,
   topics,
   type ArticleRecord,
@@ -34,6 +37,18 @@ export type ArticleMutationResult =
   | { kind: 'not_found' }
   | { kind: 'invalid_context' }
   | { kind: 'invalid_version' };
+
+export interface ArticleDeletionResult {
+  kind: 'ok' | 'not_found';
+  audit?: {
+    id: string;
+    objectId: string;
+    objectType: string;
+    mode: 'archive' | 'soft' | 'permanent';
+    occurredAt: Date;
+  };
+  storageKeys?: readonly string[];
+}
 
 interface ArticleBaseRecord {
   object: ContentObjectRecord;
@@ -393,6 +408,130 @@ export class ArticleStore {
     return article ? { kind: 'ok', article } : { kind: 'not_found' };
   }
 
+  async delete(
+    ownerUserId: string,
+    articleId: string,
+    mode: 'archive' | 'soft' | 'permanent',
+  ): Promise<ArticleDeletionResult> {
+    return this.client.db.transaction(async (transaction) => {
+      const [object] = await transaction
+        .select()
+        .from(contentObjects)
+        .where(
+          and(
+            eq(contentObjects.id, articleId),
+            eq(contentObjects.ownerUserId, ownerUserId),
+            eq(contentObjects.objectType, 'article'),
+          ),
+        )
+        .limit(1);
+      if (!object || object.status === 'deleted') return { kind: 'not_found' as const };
+      const now = new Date();
+      const auditId = crypto.randomUUID();
+      const keys =
+        mode === 'permanent'
+          ? (
+              await transaction
+                .select({ storageKey: contentFiles.storageKey })
+                .from(contentFiles)
+                .where(
+                  and(
+                    eq(contentFiles.ownerUserId, ownerUserId),
+                    eq(contentFiles.contentObjectId, articleId),
+                  ),
+                )
+            ).map((row) => row.storageKey)
+          : [];
+      if (mode === 'archive') {
+        await transaction
+          .update(contentObjects)
+          .set({ status: 'archived', deletedAt: null, archivedAt: now, updatedAt: now })
+          .where(eq(contentObjects.id, articleId));
+      } else if (mode === 'soft') {
+        await transaction
+          .update(contentObjects)
+          .set({ status: 'deleted', deletedAt: now, archivedAt: null, updatedAt: now })
+          .where(eq(contentObjects.id, articleId));
+      } else {
+        await transaction
+          .update(articles)
+          .set({ currentVersionId: null })
+          .where(eq(articles.id, articleId));
+        await transaction
+          .delete(articleExports)
+          .where(
+            and(
+              eq(articleExports.articleId, articleId),
+              eq(articleExports.ownerUserId, ownerUserId),
+            ),
+          );
+        await transaction
+          .delete(articleReviews)
+          .where(
+            and(
+              eq(articleReviews.articleId, articleId),
+              eq(articleReviews.ownerUserId, ownerUserId),
+            ),
+          );
+        await transaction
+          .delete(contentRelations)
+          .where(
+            and(
+              eq(contentRelations.ownerUserId, ownerUserId),
+              sql`(${contentRelations.fromObjectId} = ${articleId} OR ${contentRelations.toObjectId} = ${articleId})`,
+            ),
+          );
+        await transaction
+          .delete(contentFiles)
+          .where(
+            and(
+              eq(contentFiles.ownerUserId, ownerUserId),
+              eq(contentFiles.contentObjectId, articleId),
+            ),
+          );
+        await transaction
+          .delete(articleVersions)
+          .where(
+            and(
+              eq(articleVersions.articleId, articleId),
+              eq(articleVersions.ownerUserId, ownerUserId),
+            ),
+          );
+        await transaction
+          .delete(articles)
+          .where(and(eq(articles.id, articleId), eq(articles.ownerUserId, ownerUserId)));
+        await transaction
+          .delete(contentObjects)
+          .where(
+            and(eq(contentObjects.id, articleId), eq(contentObjects.ownerUserId, ownerUserId)),
+          );
+      }
+      const [audit] = await transaction
+        .insert(deletionAudits)
+        .values({
+          id: auditId,
+          ownerUserId,
+          objectId: articleId,
+          objectType: 'article',
+          mode,
+          occurredAt: now,
+        })
+        .returning();
+      if (!audit) throw new Error('Deletion audit creation failed.');
+      return {
+        kind: 'ok' as const,
+        audit: {
+          id: audit.id,
+          objectId: audit.objectId,
+          objectType: audit.objectType,
+          mode: audit.mode,
+          occurredAt: audit.occurredAt,
+        },
+        storageKeys: keys,
+      };
+    });
+  }
+
   async close(): Promise<void> {
     await this.client.close();
   }
@@ -608,5 +747,47 @@ export class InMemoryArticleRepository {
     };
     this.articles.set(articleId, updated);
     return Promise.resolve({ kind: 'ok', article: cloneArticle(updated) });
+  }
+
+  delete(
+    ownerUserId: string,
+    articleId: string,
+    mode: 'archive' | 'soft' | 'permanent',
+  ): Promise<ArticleDeletionResult> {
+    const current = this.articles.get(articleId);
+    if (!current || current.ownerUserId !== ownerUserId || current.object.status === 'deleted')
+      return Promise.resolve({ kind: 'not_found' });
+    const now = new Date();
+    const audit = {
+      id: crypto.randomUUID(),
+      objectId: articleId,
+      objectType: 'article',
+      mode,
+      occurredAt: now,
+    } as const;
+    if (mode === 'permanent') this.articles.delete(articleId);
+    else if (mode === 'archive')
+      this.articles.set(articleId, {
+        ...current,
+        object: {
+          ...current.object,
+          status: 'archived',
+          deletedAt: null,
+          archivedAt: now,
+          updatedAt: now,
+        },
+      });
+    else
+      this.articles.set(articleId, {
+        ...current,
+        object: {
+          ...current.object,
+          status: 'deleted',
+          deletedAt: now,
+          archivedAt: null,
+          updatedAt: now,
+        },
+      });
+    return Promise.resolve({ kind: 'ok', audit, storageKeys: [] });
   }
 }

@@ -1,5 +1,7 @@
 'use client';
 
+/* eslint-disable @typescript-eslint/no-unused-expressions */
+
 import {
   Archive,
   BookOpenText,
@@ -30,6 +32,7 @@ import { OutlineWorkspace } from './outline-workspace';
 import { ArticleWorkspace } from './article-workspace';
 import { TopicWorkspace } from './topic-workspace';
 import { DiscoveryWorkspace } from './discovery-workspace';
+import { SettingsWorkspace } from './settings-workspace';
 
 interface NavigationItem {
   label: string;
@@ -46,7 +49,7 @@ const navigation: readonly NavigationItem[] = [
   { label: '素材库', icon: FolderOpen, href: '/materials' },
   { label: '文章框架', icon: FileText, href: '/outlines' },
   { label: '我的文章', icon: BookOpenText, href: '/articles' },
-  { label: 'Prompt 管理', icon: WandSparkles, href: '#' },
+  { label: 'Prompt 管理', icon: WandSparkles, href: '/settings' },
   { label: '导出历史', icon: FileClock, href: '#' },
 ];
 
@@ -67,7 +70,8 @@ export function AppShell({
     | 'topics'
     | 'materials'
     | 'outlines'
-    | 'articles';
+    | 'articles'
+    | 'settings';
 }) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -105,6 +109,7 @@ export function AppShell({
               (surface === 'materials' && label === '素材库') ||
               (surface === 'outlines' && label === '文章框架') ||
               (surface === 'articles' && label === '我的文章');
+            surface === 'settings' && label === 'Prompt 管理';
             return (
               <a
                 aria-current={active ? 'page' : undefined}
@@ -122,7 +127,7 @@ export function AppShell({
           })}
         </nav>
 
-        <a className="navigation__item sidebar__settings" href="#">
+        <a className="navigation__item sidebar__settings" href="/settings">
           <Settings aria-hidden="true" size={18} />
           {!collapsed && <span>设置</span>}
         </a>
@@ -144,7 +149,8 @@ export function AppShell({
             surface === 'topics' ||
             surface === 'materials' ||
             surface === 'outlines' ||
-            surface === 'articles'
+            surface === 'articles' ||
+            surface === 'settings'
               ? 'workspace__content workspace__content--wide'
               : 'workspace__content'
           }
@@ -163,6 +169,8 @@ export function AppShell({
             <OutlineWorkspace />
           ) : surface === 'articles' ? (
             <ArticleWorkspace />
+          ) : surface === 'settings' ? (
+            <SettingsWorkspace />
           ) : (
             <>
               <section className="welcome" aria-labelledby="welcome-title">

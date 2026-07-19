@@ -25,3 +25,6 @@ export const setLocalPinSchema = z
   .strict();
 
 export type SetLocalPin = z.infer<typeof setLocalPinSchema>;
+
+export const verifyLocalPinSchema = setLocalPinSchema;
+export type VerifyLocalPin = z.infer<typeof verifyLocalPinSchema>;

@@ -5,6 +5,7 @@ import {
   type CreateArticle,
   type CreateArticleCandidate,
   type CreateReview,
+  type DeletionAudit,
   type Review,
   type UpdateArticle,
 } from '@content-writing/contracts';
@@ -44,6 +45,11 @@ export interface ArticleRepository {
     articleId: string,
     input: UpdateArticle,
   ): Promise<ArticleRepositoryMutation>;
+  delete(
+    ownerUserId: string,
+    articleId: string,
+    mode: 'archive' | 'soft' | 'permanent',
+  ): Promise<{ audit: DeletionAudit; storageKeys: readonly string[] } | null>;
   close?(): Promise<void>;
 }
 
@@ -162,6 +168,19 @@ export class PostgresArticleRepository implements ArticleRepository {
       : result;
   }
 
+  async delete(
+    ownerUserId: string,
+    articleId: string,
+    mode: 'archive' | 'soft' | 'permanent',
+  ): Promise<{ audit: DeletionAudit; storageKeys: readonly string[] } | null> {
+    const result = await this.store.delete(ownerUserId, articleId, mode);
+    if (result.kind !== 'ok' || !result.audit) return null;
+    return {
+      audit: { ...result.audit, occurredAt: result.audit.occurredAt.toISOString() },
+      storageKeys: result.storageKeys ?? [],
+    };
+  }
+
   close(): Promise<void> {
     return this.store.close();
   }
@@ -234,5 +253,18 @@ export class InMemoryArticleRepository implements ArticleRepository {
     return result.kind === 'ok'
       ? { kind: 'ok', article: articleFromAggregate(result.article) }
       : result;
+  }
+
+  async delete(
+    ownerUserId: string,
+    articleId: string,
+    mode: 'archive' | 'soft' | 'permanent',
+  ): Promise<{ audit: DeletionAudit; storageKeys: readonly string[] } | null> {
+    const result = await this.store.delete(ownerUserId, articleId, mode);
+    if (result.kind !== 'ok' || !result.audit) return null;
+    return {
+      audit: { ...result.audit, occurredAt: result.audit.occurredAt.toISOString() },
+      storageKeys: result.storageKeys ?? [],
+    };
   }
 }

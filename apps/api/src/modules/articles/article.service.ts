@@ -4,6 +4,7 @@ import type {
   CreateArticleCandidate,
   CreateReview,
   UpdateArticle,
+  DeletionAudit,
 } from '@content-writing/contracts';
 import {
   BadRequestException,
@@ -14,6 +15,7 @@ import {
 } from '@nestjs/common';
 
 import { IdentityService } from '../identity/identity.service.js';
+import { STORAGE_PROVIDER, type StorageProvider } from '../materials/storage.provider.js';
 import {
   ARTICLE_REPOSITORY,
   type ArticleRepository,
@@ -25,6 +27,7 @@ export class ArticleService implements OnModuleDestroy {
   constructor(
     @Inject(ARTICLE_REPOSITORY) private readonly repository: ArticleRepository,
     private readonly identityService: IdentityService,
+    @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
   ) {}
 
   private resolveMutation(result: ArticleRepositoryMutation): Article {
@@ -78,6 +81,22 @@ export class ArticleService implements OnModuleDestroy {
   async update(articleId: string, input: UpdateArticle): Promise<Article> {
     const user = await this.identityService.getCurrentUser();
     return this.resolveMutation(await this.repository.update(user.id, articleId, input));
+  }
+
+  async delete(articleId: string, mode: 'archive' | 'soft' | 'permanent'): Promise<DeletionAudit> {
+    const user = await this.identityService.getCurrentUser();
+    const result = await this.repository.delete(user.id, articleId, mode);
+    if (!result) throw new NotFoundException('Article not found.');
+    if (mode === 'permanent') {
+      const failures = await Promise.allSettled(
+        result.storageKeys.map((key) => this.storage.delete(key)),
+      );
+      if (failures.some((item) => item.status === 'rejected'))
+        throw new BadRequestException(
+          'Article deleted, but one or more local files could not be removed.',
+        );
+    }
+    return result.audit;
   }
 
   async onModuleDestroy(): Promise<void> {
