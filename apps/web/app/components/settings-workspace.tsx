@@ -1,6 +1,6 @@
 'use client';
 
-import type { ModelProviderConfig, Prompt } from '@content-writing/contracts';
+import type { LocalUser, ModelProviderConfig, Prompt } from '@content-writing/contracts';
 import { Check, KeyRound, Plus, Save, WandSparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -24,16 +24,20 @@ export function SettingsWorkspace() {
   const [providerBaseUrl, setProviderBaseUrl] = useState('https://api.openai.com/v1');
   const [providerModel, setProviderModel] = useState('');
   const [providerKey, setProviderKey] = useState('');
+  const [pin, setPin] = useState('');
+  const [pinEnabled, setPinEnabled] = useState(false);
   const [status, setStatus] = useState('');
 
   async function load() {
     try {
-      const [nextPrompts, nextProviders] = await Promise.all([
+      const [nextPrompts, nextProviders, localUser] = await Promise.all([
         request<Prompt[]>('/prompts'),
         request<ModelProviderConfig[]>('/model-providers'),
+        request<LocalUser>('/me'),
       ]);
       setPrompts(nextPrompts);
       setProviders(nextProviders);
+      setPinEnabled(localUser.pinEnabled);
       const first = nextPrompts[0];
       if (first) {
         setSelectedPromptId(first.id);
@@ -110,6 +114,21 @@ export function SettingsWorkspace() {
       setStatus('模型中转配置已保存，密钥不会回显');
     } catch (error) {
       setStatus(error instanceof Error ? error.message : '模型配置保存失败');
+    }
+  }
+
+  async function savePin(event: React.FormEvent) {
+    event.preventDefault();
+    try {
+      const updated = await request<LocalUser>('/settings/pin', {
+        method: 'PUT',
+        body: JSON.stringify({ pin }),
+      });
+      setPin('');
+      setPinEnabled(updated.pinEnabled);
+      setStatus('本地 PIN 已启用；关闭应用后不会自动登录');
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'PIN 设置失败');
     }
   }
 
@@ -258,6 +277,31 @@ export function SettingsWorkspace() {
             ))}
             {providers.length === 0 && <p className="empty-state">还没有模型配置。</p>}
           </div>
+        </section>
+        <section className="settings-panel">
+          <div className="section-heading">
+            <div>
+              <h2>本地 PIN</h2>
+              <span>{pinEnabled ? '已启用' : '默认免登录'}</span>
+            </div>
+          </div>
+          <form className="settings-provider-form" onSubmit={(event) => void savePin(event)}>
+            <label>
+              设置 4–12 位数字 PIN
+              <input
+                inputMode="numeric"
+                maxLength={12}
+                minLength={4}
+                onChange={(event) => setPin(event.target.value)}
+                pattern="[0-9]{4,12}"
+                type="password"
+                value={pin}
+              />
+            </label>
+            <button className="secondary-button" disabled={pin.length < 4} type="submit">
+              <KeyRound size={16} /> 启用或更换 PIN
+            </button>
+          </form>
         </section>
       </div>
     </div>
