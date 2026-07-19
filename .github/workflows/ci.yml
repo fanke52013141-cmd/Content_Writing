@@ -62,6 +62,7 @@ jobs:
           POSTGRES_USER=content_writer
           POSTGRES_PASSWORD=ci-only-password
           BACKUP_ENCRYPTION_KEY=abababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab
+          MODEL_ENCRYPTION_KEY=cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd
           EOF
 
       - name: Build and cold-start the local stack
