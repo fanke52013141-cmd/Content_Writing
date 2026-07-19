@@ -266,6 +266,63 @@ export function ArticleWorkspace() {
     setStatus('AI 生成超时，请查看生成记录');
   }
 
+  async function generateReview() {
+    if (!selected) return;
+    const provider = providers.find((item) => item.id === providerId);
+    setStatus('AI 正在执行所选 Reviewer…');
+    const generationResponse = await fetch(`${apiBase}/generations`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        capabilityKey,
+        providerKey: provider?.id ?? 'mock',
+        model: provider?.model ?? 'mock-writer',
+        input: {
+          title: selected.currentVersion.title,
+          body: selected.currentVersion.body,
+          instruction: '只输出评审结论、证据和可执行建议，不改写正文。',
+        },
+      }),
+    });
+    if (!generationResponse.ok) {
+      setStatus('AI 评审请求失败');
+      return;
+    }
+    const generation = (await generationResponse.json()) as Generation;
+    for (let attempt = 0; attempt < 120; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      const response = await fetch(`${apiBase}/generations/${generation.id}`);
+      if (!response.ok) continue;
+      const current = (await response.json()) as Generation;
+      if (current.status === 'failed') {
+        setStatus(current.errorMessage ?? 'AI 评审失败');
+        return;
+      }
+      if (current.status !== 'succeeded' || !current.outputText) continue;
+      const reviewResponse = await fetch(`${apiBase}/articles/${selected.id}/reviews`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          versionId: selected.currentVersionId,
+          capabilityKey,
+          verdict: 'needs_revision',
+          summary: current.outputText,
+          findings: [],
+        }),
+      });
+      if (!reviewResponse.ok) {
+        setStatus('AI 已完成，但评审记录保存失败');
+        return;
+      }
+      const article = (await reviewResponse.json()) as Article;
+      setArticles((items) => items.map((item) => (item.id === article.id ? article : item)));
+      select(article);
+      setStatus('AI 评审已记录，结论默认为需要改写');
+      return;
+    }
+    setStatus('AI 评审超时，请查看生成记录');
+  }
+
   async function accept(versionId: string) {
     if (!selected) return;
     const response = await fetch(
@@ -670,6 +727,13 @@ export function ArticleWorkspace() {
               </label>
               <button className="secondary-button" type="submit">
                 <ShieldCheck size={15} /> 保存评审
+              </button>
+              <button
+                className="secondary-button"
+                onClick={() => void generateReview()}
+                type="button"
+              >
+                <Sparkles size={15} /> AI 评审
               </button>
               {selected.reviews.length > 0 && (
                 <ul className="article-review-list">
